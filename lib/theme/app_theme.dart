@@ -10,6 +10,13 @@ class AppTheme {
   static const Color textLight = Color(0xFF64748B);
   static const Color white = Colors.white;
 
+  // Status colors for dashboard
+  static const Color statusOnRoute = Color(0xFFD1FAE5);
+  static const Color statusOnRouteText = Color(0xFF065F46);
+  static const Color statusDelayed = Color(0xFFFEE2E2);
+  static const Color statusDelayedText = Color(0xFF991B1B);
+  static const Color statusMaintenance = Color(0xFFE2E8F0);
+  static const Color statusMaintenanceText = Color(0xFF475569);
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,

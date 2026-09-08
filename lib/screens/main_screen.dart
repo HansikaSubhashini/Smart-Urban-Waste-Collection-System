@@ -12,11 +12,11 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 1; // Default to Schedule/Home
+  int _currentIndex = 0; // Default to Home
 
   final List<Widget> _screens = [
-    const MapScreen(),
     const HomeDashboard(),
+    const MapScreen(),
     const ReportsScreen(),
     const ProfileScreen(),
   ];
@@ -34,14 +34,14 @@ class _MainScreenState extends State<MainScreen> {
         },
         items: const [
           BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.map_outlined),
             activeIcon: Icon(Icons.map),
             label: 'Map',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today_outlined),
-            activeIcon: Icon(Icons.calendar_today),
-            label: 'Schedule',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.report_problem_outlined),

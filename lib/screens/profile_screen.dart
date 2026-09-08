@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
-
+import 'municipal_dashboard.dart';
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
@@ -37,7 +37,7 @@ class ProfileScreen extends StatelessWidget {
           const SizedBox(height: 24),
           _buildImpactCard(),
           const SizedBox(height: 24),
-          _buildAppPreferences(),
+          _buildAppPreferences(context),
           const SizedBox(height: 32),
           Center(
             child: TextButton.icon(
@@ -237,7 +237,7 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAppPreferences() {
+  Widget _buildAppPreferences(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -293,6 +293,19 @@ class ProfileScreen extends StatelessWidget {
                   onChanged: (val) {},
                   activeColor: AppTheme.darkGreen,
                 ),
+              ),
+              const Divider(height: 1, indent: 56),
+              ListTile(
+                leading: const Icon(Icons.admin_panel_settings, color: AppTheme.textDark),
+                title: const Text('Admin Dashboard', style: TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: const Text('Access municipal management'),
+                trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const MunicipalDashboard()),
+                  );
+                },
               ),
             ],
           ),
