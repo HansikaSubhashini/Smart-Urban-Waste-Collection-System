@@ -10,7 +10,7 @@ class ReportsScreen extends StatelessWidget {
       appBar: AppBar(
         title: Row(
           children: [
-            const Icon(Icons.local_shipping, color: AppTheme.darkGreen),
+            const Icon(Icons.local_shipping, color: Color.fromARGB(255, 43, 150, 132)),
             const SizedBox(width: 8),
             Text(
               'Community Reports',
