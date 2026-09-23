@@ -65,16 +65,10 @@ class _MainScreenState extends State<MainScreen> {
         break;
       case UserRole.driver:
         _screens = [
-          const DriverDashboard(),
           const MapScreen(),
-          const ProfileScreen(),
+          const DriverDashboard(),
         ];
         _navItems = const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.route_outlined),
-            activeIcon: Icon(Icons.route),
-            label: 'Routes',
-          ),
           BottomNavigationBarItem(
             icon: Icon(Icons.map_outlined),
             activeIcon: Icon(Icons.map),

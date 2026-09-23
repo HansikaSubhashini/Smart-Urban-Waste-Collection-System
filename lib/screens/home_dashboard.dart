@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import 'admin_register_resident_screen.dart';
 
 class HomeDashboard extends StatelessWidget {
   const HomeDashboard({super.key});
@@ -44,6 +45,8 @@ class HomeDashboard extends StatelessWidget {
           _buildSectionHeader(Icons.analytics_outlined, 'Service Performance', null),
           const SizedBox(height: 16),
           _buildServicePerformance(),
+          const SizedBox(height: 32),
+          _buildResidentManagement(context),
           const SizedBox(height: 24),
         ],
       ),
@@ -492,6 +495,137 @@ class HomeDashboard extends StatelessWidget {
           borderRadius: BorderRadius.circular(4),
         ),
       ],
+    );
+  }
+
+  Widget _buildResidentManagement(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Resident Management',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textDark,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Manage household registration',
+                  style: TextStyle(color: AppTheme.textLight, fontSize: 14),
+                ),
+              ],
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AdminRegisterResidentScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.person_add, size: 18),
+              label: const Text('Register'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryGreen,
+                foregroundColor: AppTheme.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _buildResidentCard('Nihal Perera', 'Bambalapitiya Flats, D-14', 'ACTIVE', 'Registered Today', Icons.home),
+        const SizedBox(height: 12),
+        _buildResidentCard('SkyGarden Condos', 'Ward Place, Colombo 07', 'ACTIVE', '2 hrs ago', Icons.apartment),
+        const SizedBox(height: 12),
+        _buildResidentCard('Cargills FoodCity', 'Dickman\'s Road Outlet', 'PENDING', '4 hrs ago', Icons.store),
+      ],
+    );
+  }
+
+  Widget _buildResidentCard(String name, String address, String status, String time, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppTheme.lightBlueBackground,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: AppTheme.textLight, size: 20),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      name,
+                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textDark, fontSize: 14),
+                    ),
+                    Text(
+                      status,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: status == 'ACTIVE' ? AppTheme.primaryGreen : Colors.orange,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        address,
+                        style: const TextStyle(color: AppTheme.textLight, fontSize: 13),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      time,
+                      style: const TextStyle(color: AppTheme.textLight, fontSize: 11),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

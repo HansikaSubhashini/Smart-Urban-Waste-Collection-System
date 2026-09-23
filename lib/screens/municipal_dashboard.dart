@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import 'admin_register_resident_screen.dart';
 
 class MunicipalDashboard extends StatelessWidget {
   const MunicipalDashboard({super.key});
@@ -38,7 +39,7 @@ class MunicipalDashboard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 32),
-                  _buildResidentManagement(),
+                  _buildResidentManagement(context),
                 ],
               ),
             ),
@@ -519,7 +520,7 @@ class MunicipalDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildResidentManagement() {
+  Widget _buildResidentManagement(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -545,7 +546,14 @@ class MunicipalDashboard extends StatelessWidget {
               ],
             ),
             ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const AdminRegisterResidentScreen(),
+                  ),
+                );
+              },
               icon: const Icon(Icons.person_add),
               label: const Text('Register New Household'),
               style: ElevatedButton.styleFrom(

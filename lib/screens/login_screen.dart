@@ -2,15 +2,35 @@ import 'package:flutter/material.dart';
 import '../models/user_role.dart';
 import '../theme/app_theme.dart';
 import 'main_screen.dart';
+import 'resident_login_screen.dart';
+import 'admin_login_screen.dart';
+import 'driver_login_screen.dart';
 
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
   void _login(BuildContext context, UserRole role) {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (context) => MainScreen(userRole: role)),
-    );
+    if (role == UserRole.resident) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ResidentLoginScreen()),
+      );
+    } else if (role == UserRole.admin) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const AdminLoginScreen()),
+      );
+    } else if (role == UserRole.driver) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const DriverLoginScreen()),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => MainScreen(userRole: role)),
+      );
+    }
   }
 
   @override
