@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import 'municipal_dashboard.dart';
+
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
@@ -23,7 +24,8 @@ class ProfileScreen extends StatelessWidget {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.notifications_none, color: AppTheme.darkGreen),
+            icon:
+                const Icon(Icons.notifications_none, color: AppTheme.darkGreen),
             onPressed: () {},
           ),
         ],
@@ -45,7 +47,10 @@ class ProfileScreen extends StatelessWidget {
               icon: const Icon(Icons.logout, color: Colors.red),
               label: const Text(
                 'Sign Out from EcoTrack',
-                style: TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.red,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -82,7 +87,10 @@ class ProfileScreen extends StatelessWidget {
                   children: [
                     const Text(
                       'Arjuna Perera',
-                      style: TextStyle(color: AppTheme.textDark, fontSize: 20, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          color: AppTheme.textDark,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold),
                     ),
                     const Icon(Icons.edit, color: AppTheme.darkGreen, size: 20),
                   ],
@@ -91,20 +99,23 @@ class ProfileScreen extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.location_on_outlined, color: AppTheme.textLight, size: 16),
+                    const Icon(Icons.location_on_outlined,
+                        color: AppTheme.textLight, size: 16),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Kalubowila,\nColombo',
-                            style: TextStyle(color: AppTheme.textDark, fontSize: 14),
+                            'Kalubowila,\nColombo 07',
+                            style: TextStyle(
+                                color: AppTheme.textDark, fontSize: 14),
                           ),
                           const SizedBox(height: 4),
                           const Text(
                             '42/1 Hospital Road',
-                            style: TextStyle(color: AppTheme.textLight, fontSize: 14),
+                            style: TextStyle(
+                                color: AppTheme.textLight, fontSize: 14),
                           ),
                         ],
                       ),
@@ -128,7 +139,11 @@ class ProfileScreen extends StatelessWidget {
           children: [
             const Text(
               'ALERT PROXIMITY',
-              style: TextStyle(color: AppTheme.textLight, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+              style: TextStyle(
+                  color: AppTheme.textLight,
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -138,7 +153,10 @@ class ProfileScreen extends StatelessWidget {
               ),
               child: const Text(
                 'SMART TRACK',
-                style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -156,9 +174,13 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 child: const Column(
                   children: [
-                    Icon(Icons.notifications_active, color: AppTheme.primaryGreen),
+                    Icon(Icons.notifications_active,
+                        color: AppTheme.primaryGreen),
                     SizedBox(height: 8),
-                    Text('500m Away', style: TextStyle(color: AppTheme.textDark, fontWeight: FontWeight.bold)),
+                    Text('500m Away',
+                        style: TextStyle(
+                            color: AppTheme.textDark,
+                            fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
@@ -175,7 +197,8 @@ class ProfileScreen extends StatelessWidget {
                   children: [
                     Icon(Icons.notifications_none, color: AppTheme.textLight),
                     SizedBox(height: 8),
-                    Text('1km Away', style: TextStyle(color: AppTheme.textLight)),
+                    Text('1km Away',
+                        style: TextStyle(color: AppTheme.textLight)),
                   ],
                 ),
               ),
@@ -185,7 +208,8 @@ class ProfileScreen extends StatelessWidget {
         const SizedBox(height: 12),
         const Text(
           'Notifications will trigger automatically as the garbage truck enters your designated radius.',
-          style: TextStyle(color: AppTheme.textLight, fontStyle: FontStyle.italic),
+          style:
+              TextStyle(color: AppTheme.textLight, fontStyle: FontStyle.italic),
         ),
       ],
     );
@@ -207,7 +231,10 @@ class ProfileScreen extends StatelessWidget {
               const SizedBox(width: 8),
               const Text(
                 'Why this matters',
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -226,7 +253,9 @@ class ProfileScreen extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('View Impact Statistics', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                const Text('View Impact Statistics',
+                    style: TextStyle(
+                        color: Colors.white, fontWeight: FontWeight.bold)),
                 const SizedBox(width: 8),
                 const Icon(Icons.show_chart, color: Colors.white, size: 16),
               ],
@@ -243,7 +272,11 @@ class ProfileScreen extends StatelessWidget {
       children: [
         const Text(
           'APP PREFERENCES',
-          style: TextStyle(color: AppTheme.textLight, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+          style: TextStyle(
+              color: AppTheme.textLight,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2),
         ),
         const SizedBox(height: 12),
         Container(
@@ -255,10 +288,12 @@ class ProfileScreen extends StatelessWidget {
             children: [
               ListTile(
                 leading: const Icon(Icons.language, color: AppTheme.textDark),
-                title: const Text('Language', style: TextStyle(fontWeight: FontWeight.bold)),
+                title: const Text('Language',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: const Text('Preferred interface language'),
                 trailing: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
@@ -274,8 +309,10 @@ class ProfileScreen extends StatelessWidget {
               ),
               const Divider(height: 1, indent: 56),
               ListTile(
-                leading: const Icon(Icons.dark_mode_outlined, color: AppTheme.textDark),
-                title: const Text('App Theme', style: TextStyle(fontWeight: FontWeight.bold)),
+                leading: const Icon(Icons.dark_mode_outlined,
+                    color: AppTheme.textDark),
+                title: const Text('App Theme',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: const Text('Switch between light and dark'),
                 trailing: Switch(
                   value: false,
@@ -285,8 +322,10 @@ class ProfileScreen extends StatelessWidget {
               ),
               const Divider(height: 1, indent: 56),
               ListTile(
-                leading: const Icon(Icons.do_not_disturb_on_total_silence, color: AppTheme.textDark),
-                title: const Text('Quiet Hours', style: TextStyle(fontWeight: FontWeight.bold)),
+                leading: const Icon(Icons.do_not_disturb_on_total_silence,
+                    color: AppTheme.textDark),
+                title: const Text('Quiet Hours',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: const Text('Disable alerts after 10 PM'),
                 trailing: Checkbox(
                   value: false,
@@ -296,14 +335,17 @@ class ProfileScreen extends StatelessWidget {
               ),
               const Divider(height: 1, indent: 56),
               ListTile(
-                leading: const Icon(Icons.admin_panel_settings, color: AppTheme.textDark),
-                title: const Text('Admin Dashboard', style: TextStyle(fontWeight: FontWeight.bold)),
+                leading: const Icon(Icons.admin_panel_settings,
+                    color: AppTheme.textDark),
+                title: const Text('Admin Dashboard',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: const Text('Access municipal management'),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const MunicipalDashboard()),
+                    MaterialPageRoute(
+                        builder: (context) => const MunicipalDashboard()),
                   );
                 },
               ),
