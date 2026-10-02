@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "265312952465",
+    "project_id": "smart-urban-system",
+    "storage_bucket": "smart-urban-system.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:265312952465:android:a67543a6010da7dd1e1f30",
+        "android_client_info": {
+          "package_name": "com.example.smart_urban_waste_collection_system"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCgbIRnMKvn9SDgqRu4SUJbUzr9fO1VF3g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

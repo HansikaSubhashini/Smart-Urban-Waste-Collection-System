@@ -1,9 +1,48 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../models/truck_model.dart';
+import '../models/user_model.dart';
+import '../services/truck_service.dart';
+import '../services/admin_service.dart';
 import 'admin_register_resident_screen.dart';
 
-class MunicipalDashboard extends StatelessWidget {
+class MunicipalDashboard extends StatefulWidget {
   const MunicipalDashboard({super.key});
+
+  @override
+  State<MunicipalDashboard> createState() => _MunicipalDashboardState();
+}
+
+class _MunicipalDashboardState extends State<MunicipalDashboard> {
+  final TruckService _truckService = TruckService();
+  final AdminService _adminService = AdminService();
+
+  Map<String, dynamic> _metrics = {};
+  Map<String, dynamic> _performance = {};
+  bool _metricsLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMetrics();
+  }
+
+  Future<void> _loadMetrics() async {
+    try {
+      final metrics = await _adminService.getDashboardMetrics();
+      final performance = await _adminService.getPerformanceMetrics();
+      if (mounted) {
+        setState(() {
+          _metrics = metrics;
+          _performance = performance;
+          _metricsLoaded = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading metrics: $e');
+      if (mounted) setState(() => _metricsLoaded = true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +68,7 @@ class MunicipalDashboard extends StatelessWidget {
                     children: [
                       Expanded(
                         flex: 2,
-                        child: _buildFleetStatus(),
+                        child: _buildFleetStatusStream(),
                       ),
                       const SizedBox(width: 32),
                       Expanded(
@@ -39,7 +78,7 @@ class MunicipalDashboard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 32),
-                  _buildResidentManagement(context),
+                  _buildResidentManagementStream(context),
                 ],
               ),
             ),
@@ -59,9 +98,9 @@ class MunicipalDashboard extends StatelessWidget {
             padding: const EdgeInsets.all(24.0),
             child: Row(
               children: [
-                Icon(Icons.local_shipping, color: AppTheme.primaryGreen),
+                const Icon(Icons.local_shipping, color: AppTheme.primaryGreen),
                 const SizedBox(width: 12),
-                Text(
+                const Text(
                   'EcoTrack',
                   style: TextStyle(
                     fontSize: 20,
@@ -90,10 +129,10 @@ class MunicipalDashboard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   backgroundColor: AppTheme.primaryGreen.withOpacity(0.2),
-                  child: Icon(Icons.person, color: AppTheme.primaryGreen),
+                  child: const Icon(Icons.person, color: AppTheme.primaryGreen),
                 ),
                 const SizedBox(width: 12),
-                Column(
+                const Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
@@ -149,7 +188,7 @@ class MunicipalDashboard extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
+        const Text(
           'Municipal Dashboard',
           style: TextStyle(
             fontSize: 28,
@@ -170,13 +209,13 @@ class MunicipalDashboard extends StatelessWidget {
                   Container(
                     width: 8,
                     height: 8,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: AppTheme.primaryGreen,
                       shape: BoxShape.circle,
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
+                  const Text(
                     'System Live: All Districts',
                     style: TextStyle(
                       color: AppTheme.darkGreen,
@@ -187,7 +226,7 @@ class MunicipalDashboard extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 16),
-            Icon(Icons.notifications_none, color: AppTheme.textDark),
+            const Icon(Icons.notifications_none, color: AppTheme.textDark),
           ],
         ),
       ],
@@ -195,15 +234,29 @@ class MunicipalDashboard extends StatelessWidget {
   }
 
   Widget _buildOverviewMetrics() {
+    if (!_metricsLoaded) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final activeTrucks = _metrics['activeTrucks']?.toString() ?? '0';
+    final missed = _metrics['missedCollections']?.toString() ?? '0';
+    final avgRating = (_performance['avgRating'] ?? 0.0).toStringAsFixed(2);
+    final totalResidents = _metrics['totalResidents'] ?? 0;
+    final newToday = _metrics['newResidentsToday'] ?? 0;
+
+    final residentDisplay = totalResidents >= 1000
+        ? '${(totalResidents / 1000).toStringAsFixed(1)}k'
+        : totalResidents.toString();
+
     return Row(
       children: [
-        Expanded(child: _buildMetricCard('Active Trucks', '42', '↑ 94% Fleet Capacity', Icons.local_shipping, AppTheme.primaryGreen)),
+        Expanded(child: _buildMetricCard('Active Trucks', activeTrucks, '↑ On Route', Icons.local_shipping, AppTheme.primaryGreen)),
         const SizedBox(width: 16),
-        Expanded(child: _buildMetricCard('Missed Collections', '08', 'Today • Colombo 03 District', Icons.event_busy, Colors.red)),
+        Expanded(child: _buildMetricCard('Missed Collections', missed, 'Today', Icons.event_busy, Colors.red)),
         const SizedBox(width: 16),
-        Expanded(child: _buildMetricCard('Avg. Rating', '4.82', '↗ 12k Reviews this week', Icons.star_border, Colors.blue)),
+        Expanded(child: _buildMetricCard('Avg. Rating', avgRating, '↗ ${_performance['totalReviews'] ?? 0} Reviews', Icons.star_border, Colors.blue)),
         const SizedBox(width: 16),
-        Expanded(child: _buildMetricCard('Total Residents', '84.2k', '+124 New today', Icons.people, AppTheme.textDark)),
+        Expanded(child: _buildMetricCard('Total Residents', residentDisplay, '+$newToday New today', Icons.people, AppTheme.textDark)),
       ],
     );
   }
@@ -230,7 +283,7 @@ class MunicipalDashboard extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: TextStyle(color: AppTheme.textLight, fontWeight: FontWeight.w500),
+                style: const TextStyle(color: AppTheme.textLight, fontWeight: FontWeight.w500),
               ),
               Container(
                 padding: const EdgeInsets.all(8),
@@ -245,7 +298,7 @@ class MunicipalDashboard extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             value,
-            style: TextStyle(
+            style: const TextStyle(
               fontSize: 32,
               fontWeight: FontWeight.bold,
               color: AppTheme.textDark,
@@ -265,7 +318,8 @@ class MunicipalDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildFleetStatus() {
+  /// Real-time fleet status from Firestore
+  Widget _buildFleetStatusStream() {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -285,10 +339,10 @@ class MunicipalDashboard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
+              const Row(
                 children: [
                   Icon(Icons.sensors, color: AppTheme.primaryGreen),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8),
                   Text(
                     'Fleet Real-time Status',
                     style: TextStyle(
@@ -299,7 +353,7 @@ class MunicipalDashboard extends StatelessWidget {
                   ),
                 ],
               ),
-              Text(
+              const Text(
                 'View Map',
                 style: TextStyle(
                   color: AppTheme.primaryGreen,
@@ -309,20 +363,36 @@ class MunicipalDashboard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          Table(
-            columnWidths: const {
-              0: FlexColumnWidth(1),
-              1: FlexColumnWidth(2),
-              2: FlexColumnWidth(1),
-              3: FlexColumnWidth(1),
+          StreamBuilder<List<TruckModel>>(
+            stream: _truckService.getTrucksStream(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              final trucks = snapshot.data ?? [];
+              if (trucks.isEmpty) {
+                return const Center(child: Text('No trucks registered.'));
+              }
+
+              return Table(
+                columnWidths: const {
+                  0: FlexColumnWidth(1),
+                  1: FlexColumnWidth(2),
+                  2: FlexColumnWidth(1),
+                  3: FlexColumnWidth(1),
+                },
+                children: [
+                  _buildTableRow('Truck ID', 'Location', 'Status', 'ML Prediction', isHeader: true),
+                  ...trucks.map((t) => _buildTableRow(
+                    t.truckId,
+                    t.currentLocation,
+                    t.displayStatus,
+                    t.prediction,
+                  )),
+                ],
+              );
             },
-            children: [
-              _buildTableRow('Truck ID', 'Location', 'Status', 'ML Prediction', isHeader: true),
-              _buildTableRow('TRK-2024-C1', 'Marine Drive,\nBambalapitiya', 'ON ROUTE', '-2 min Early'),
-              _buildTableRow('TRK-2024-C8', 'Duplication Road,\nKollupitiya', 'DELAYED', '+12 min\n(Traffic)'),
-              _buildTableRow('TRK-2024-B4', 'Reclamation Road, Fort', 'ON ROUTE', 'On Time'),
-              _buildTableRow('TRK-2024-D2', 'Thurstan Road,\nCinnamon Gdns', 'MAINTENANCE', '—'),
-            ],
           ),
         ],
       ),
@@ -385,15 +455,17 @@ class MunicipalDashboard extends StatelessWidget {
       
       return Row(
         children: [
-          if (isEarlyOrOnTime) Icon(Icons.check_circle_outline, color: AppTheme.primaryGreen, size: 16),
-          if (isDelayed) Icon(Icons.warning_amber_rounded, color: Colors.red, size: 16),
+          if (isEarlyOrOnTime) const Icon(Icons.check_circle_outline, color: AppTheme.primaryGreen, size: 16),
+          if (isDelayed) const Icon(Icons.warning_amber_rounded, color: Colors.red, size: 16),
           if (isEarlyOrOnTime || isDelayed) const SizedBox(width: 4),
-          Text(
-            prediction,
-            style: TextStyle(
-              color: isDelayed ? Colors.red : AppTheme.primaryGreen,
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
+          Expanded(
+            child: Text(
+              prediction,
+              style: TextStyle(
+                color: isDelayed ? Colors.red : AppTheme.primaryGreen,
+                fontWeight: FontWeight.bold,
+                fontSize: 12,
+              ),
             ),
           ),
         ],
@@ -426,6 +498,13 @@ class MunicipalDashboard extends StatelessWidget {
   }
 
   Widget _buildServicePerformance() {
+    final punctuality = (_performance['driverPunctuality'] ?? 0.92) as double;
+    final politeness = (_performance['collectorPoliteness'] ?? 0.88) as double;
+    final efficiency = (_performance['routeEfficiency'] ?? 0.74) as double;
+    final resolution = (_performance['problemResolution'] ?? 0.96) as double;
+    final aiInsight = _performance['aiInsight'] as String? ??
+        'Morning congestion in District 03 is impacting punctuality by 14%.\nRecommend shifting start times to 05:30 AM.';
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -442,7 +521,7 @@ class MunicipalDashboard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
+          const Text(
             'Service Performance',
             style: TextStyle(
               fontSize: 18,
@@ -451,18 +530,18 @@ class MunicipalDashboard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4),
-          Text(
+          const Text(
             'Resident rating metrics (Last 30 Days)',
             style: TextStyle(color: AppTheme.textLight, fontSize: 12),
           ),
           const SizedBox(height: 24),
-          _buildPerformanceBar('Driver Punctuality', 0.92, '92%', AppTheme.primaryGreen),
+          _buildPerformanceBar('Driver Punctuality', punctuality, '${(punctuality * 100).round()}%', AppTheme.primaryGreen),
           const SizedBox(height: 16),
-          _buildPerformanceBar('Collector Politeness', 0.88, '88%', AppTheme.primaryGreen),
+          _buildPerformanceBar('Collector Politeness', politeness, '${(politeness * 100).round()}%', AppTheme.primaryGreen),
           const SizedBox(height: 16),
-          _buildPerformanceBar('Route Efficiency', 0.74, '74%', Colors.blue),
+          _buildPerformanceBar('Route Efficiency', efficiency, '${(efficiency * 100).round()}%', Colors.blue),
           const SizedBox(height: 16),
-          _buildPerformanceBar('Problem Resolution', 0.96, '96%', AppTheme.textDark),
+          _buildPerformanceBar('Problem Resolution', resolution, '${(resolution * 100).round()}%', AppTheme.textDark),
           const SizedBox(height: 24),
           Container(
             padding: const EdgeInsets.all(16),
@@ -473,7 +552,7 @@ class MunicipalDashboard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'AI INSIGHTS',
                   style: TextStyle(
                     fontSize: 12,
@@ -483,8 +562,8 @@ class MunicipalDashboard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Morning congestion in District 03 is impacting punctuality by 14%.\nRecommend shifting start times to 05:30 AM.',
-                  style: TextStyle(
+                  aiInsight,
+                  style: const TextStyle(
                     fontSize: 12,
                     color: AppTheme.textDark,
                   ),
@@ -504,7 +583,7 @@ class MunicipalDashboard extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(label, style: TextStyle(color: AppTheme.textDark, fontWeight: FontWeight.w500)),
+            Text(label, style: const TextStyle(color: AppTheme.textDark, fontWeight: FontWeight.w500)),
             Text(percentage, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
           ],
         ),
@@ -520,14 +599,14 @@ class MunicipalDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildResidentManagement(BuildContext context) {
+  Widget _buildResidentManagementStream(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
+            const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -538,7 +617,7 @@ class MunicipalDashboard extends StatelessWidget {
                     color: AppTheme.textDark,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(
                   'Manage household registration and billing data',
                   style: TextStyle(color: AppTheme.textLight, fontSize: 14),
@@ -568,32 +647,68 @@ class MunicipalDashboard extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 24),
-        Row(
-          children: [
-            Expanded(child: _buildResidentCard('Nihal Perera', 'Bambalapitiya\nFlats, D-14', 'ACTIVE', 'Registered Today', Icons.home)),
-            const SizedBox(width: 16),
-            Expanded(child: _buildResidentCard('SkyGarden Condos', 'Ward Place, Colombo 07', 'ACTIVE', '2 hrs ago', Icons.apartment)),
-            const SizedBox(width: 16),
-            Expanded(child: _buildResidentCard('Cargills FoodCity', 'Dickman\'s Road Outlet', 'PENDING', '4 hrs ago', Icons.store)),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          decoration: BoxDecoration(
-            color: AppTheme.lightBlueBackground,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: const Center(
-            child: Text(
-              'View All 84,212 Residents',
-              style: TextStyle(
-                color: AppTheme.primaryGreen,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
+        StreamBuilder<List<UserModel>>(
+          stream: _adminService.getResidentsStream(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final residents = snapshot.data ?? [];
+            if (residents.isEmpty) {
+              return const Center(child: Text('No residents yet.'));
+            }
+
+            final displayResidents = residents.take(3).toList();
+            return Column(
+              children: [
+                Row(
+                  children: displayResidents.map((resident) {
+                    final timeDiff = DateTime.now().difference(resident.createdAt);
+                    String timeAgo;
+                    if (timeDiff.inMinutes < 60) {
+                      timeAgo = '${timeDiff.inMinutes} min ago';
+                    } else if (timeDiff.inHours < 24) {
+                      timeAgo = '${timeDiff.inHours} hrs ago';
+                    } else {
+                      timeAgo = '${timeDiff.inDays} days ago';
+                    }
+
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: _buildResidentCard(
+                          resident.name,
+                          resident.address.isNotEmpty ? resident.address : 'No address',
+                          resident.status.toUpperCase(),
+                          timeAgo,
+                          Icons.home,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    color: AppTheme.lightBlueBackground,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'View All ${residents.length} Residents',
+                      style: const TextStyle(
+                        color: AppTheme.primaryGreen,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ],
     );
@@ -626,11 +741,14 @@ class MunicipalDashboard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      name,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.textDark,
+                    Expanded(
+                      child: Text(
+                        name,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textDark,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Text(
@@ -651,15 +769,16 @@ class MunicipalDashboard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         address,
-                        style: TextStyle(
+                        style: const TextStyle(
                           fontSize: 12,
                           color: AppTheme.textLight,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     Text(
                       time,
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 10,
                         color: AppTheme.textLight,
                       ),

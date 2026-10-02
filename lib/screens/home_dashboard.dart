@@ -1,9 +1,52 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../models/truck_model.dart';
+import '../models/user_model.dart';
+import '../services/truck_service.dart';
+import '../services/admin_service.dart';
 import 'admin_register_resident_screen.dart';
+import 'admin_fleet_screen.dart';
+import 'admin_residents_screen.dart';
+import 'admin_reports_screen.dart';
+import 'admin_settings_screen.dart';
 
-class HomeDashboard extends StatelessWidget {
+class HomeDashboard extends StatefulWidget {
   const HomeDashboard({super.key});
+
+  @override
+  State<HomeDashboard> createState() => _HomeDashboardState();
+}
+
+class _HomeDashboardState extends State<HomeDashboard> {
+  final TruckService _truckService = TruckService();
+  final AdminService _adminService = AdminService();
+
+  Map<String, dynamic> _metrics = {};
+  Map<String, dynamic> _performance = {};
+  bool _metricsLoaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMetrics();
+  }
+
+  Future<void> _loadMetrics() async {
+    try {
+      final metrics = await _adminService.getDashboardMetrics();
+      final performance = await _adminService.getPerformanceMetrics();
+      if (mounted) {
+        setState(() {
+          _metrics = metrics;
+          _performance = performance;
+          _metricsLoaded = true;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading metrics: $e');
+      if (mounted) setState(() => _metricsLoaded = true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,24 +74,27 @@ class HomeDashboard extends StatelessWidget {
         ],
       ),
       drawer: _buildDrawer(),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          _buildSystemLiveChip(),
-          const SizedBox(height: 24),
-          _buildOverviewMetrics(),
-          const SizedBox(height: 32),
-          _buildSectionHeader(Icons.sensors, 'Fleet Real-time Status', 'View Map'),
-          const SizedBox(height: 16),
-          _buildFleetStatus(),
-          const SizedBox(height: 32),
-          _buildSectionHeader(Icons.analytics_outlined, 'Service Performance', null),
-          const SizedBox(height: 16),
-          _buildServicePerformance(),
-          const SizedBox(height: 32),
-          _buildResidentManagement(context),
-          const SizedBox(height: 24),
-        ],
+      body: RefreshIndicator(
+        onRefresh: _loadMetrics,
+        child: ListView(
+          padding: const EdgeInsets.all(16.0),
+          children: [
+            _buildSystemLiveChip(),
+            const SizedBox(height: 24),
+            _buildOverviewMetrics(),
+            const SizedBox(height: 32),
+            _buildSectionHeader(Icons.sensors, 'Fleet Real-time Status', 'View Map'),
+            const SizedBox(height: 16),
+            _buildFleetStatusStream(),
+            const SizedBox(height: 32),
+            _buildSectionHeader(Icons.analytics_outlined, 'Service Performance', null),
+            const SizedBox(height: 16),
+            _buildServicePerformance(),
+            const SizedBox(height: 32),
+            _buildResidentManagementStream(context),
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }
@@ -79,10 +125,22 @@ class HomeDashboard extends StatelessWidget {
               ),
             ),
             _buildSidebarItem(Icons.grid_view, 'Overview', isSelected: true),
-            _buildSidebarItem(Icons.local_shipping_outlined, 'Fleet Management'),
-            _buildSidebarItem(Icons.people_outline, 'Residents'),
-            _buildSidebarItem(Icons.bar_chart, 'Reports'),
-            _buildSidebarItem(Icons.settings_outlined, 'System Settings'),
+            _buildSidebarItem(Icons.local_shipping_outlined, 'Fleet Management', onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminFleetScreen()));
+            }),
+            _buildSidebarItem(Icons.people_outline, 'Residents', onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminResidentsScreen()));
+            }),
+            _buildSidebarItem(Icons.bar_chart, 'Reports', onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminReportsScreen()));
+            }),
+            _buildSidebarItem(Icons.settings_outlined, 'System Settings', onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminSettingsScreen()));
+            }),
             const Spacer(),
             Container(
               padding: const EdgeInsets.all(16),
@@ -128,7 +186,7 @@ class HomeDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildSidebarItem(IconData icon, String label, {bool isSelected = false}) {
+  Widget _buildSidebarItem(IconData icon, String label, {bool isSelected = false, VoidCallback? onTap}) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       decoration: BoxDecoration(
@@ -147,7 +205,7 @@ class HomeDashboard extends StatelessWidget {
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
           ),
         ),
-        onTap: () {},
+        onTap: onTap ?? () {},
       ),
     );
   }
@@ -188,6 +246,20 @@ class HomeDashboard extends StatelessWidget {
   }
 
   Widget _buildOverviewMetrics() {
+    if (!_metricsLoaded) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    final activeTrucks = _metrics['activeTrucks']?.toString() ?? '0';
+    final missed = _metrics['missedCollections']?.toString() ?? '0';
+    final avgRating = (_performance['avgRating'] ?? 0.0).toStringAsFixed(2);
+    final totalResidents = _metrics['totalResidents'] ?? 0;
+    final newToday = _metrics['newResidentsToday'] ?? 0;
+
+    final residentDisplay = totalResidents >= 1000
+        ? '${(totalResidents / 1000).toStringAsFixed(1)}k'
+        : totalResidents.toString();
+
     return GridView.count(
       crossAxisCount: 2,
       crossAxisSpacing: 16,
@@ -196,10 +268,10 @@ class HomeDashboard extends StatelessWidget {
       physics: const NeverScrollableScrollPhysics(),
       childAspectRatio: 0.85,
       children: [
-        _buildMetricCard('Active Trucks', '42', '↑ 94% Capacity', Icons.local_shipping, AppTheme.primaryGreen),
-        _buildMetricCard('Missed Col.', '08', 'Colombo 03', Icons.event_busy, Colors.red),
-        _buildMetricCard('Avg. Rating', '4.82', '↗ 12k Reviews', Icons.star_border, Colors.blue),
-        _buildMetricCard('Residents', '84.2k', '+124 New today', Icons.people, AppTheme.textDark),
+        _buildMetricCard('Active Trucks', activeTrucks, '↑ On Route', Icons.local_shipping, AppTheme.primaryGreen),
+        _buildMetricCard('Missed Col.', missed, 'Today', Icons.event_busy, Colors.red),
+        _buildMetricCard('Avg. Rating', avgRating, '↗ ${_performance['totalReviews'] ?? 0} Reviews', Icons.star_border, Colors.blue),
+        _buildMetricCard('Residents', residentDisplay, '+$newToday New today', Icons.people, AppTheme.textDark),
       ],
     );
   }
@@ -299,17 +371,40 @@ class HomeDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildFleetStatus() {
-    return Column(
-      children: [
-        _buildFleetCard('TRK-2024-C1', 'Marine Drive, Bambalapitiya', 'ON ROUTE', '-2 min Early'),
-        const SizedBox(height: 12),
-        _buildFleetCard('TRK-2024-C8', 'Duplication Road, Kollupitiya', 'DELAYED', '+12 min (Traffic)'),
-        const SizedBox(height: 12),
-        _buildFleetCard('TRK-2024-B4', 'Reclamation Road, Fort', 'ON ROUTE', 'On Time'),
-        const SizedBox(height: 12),
-        _buildFleetCard('TRK-2024-D2', 'Thurstan Road, Cinnamon Gdns', 'MAINTENANCE', '—'),
-      ],
+  /// Real-time fleet status from Firestore
+  Widget _buildFleetStatusStream() {
+    return StreamBuilder<List<TruckModel>>(
+      stream: _truckService.getTrucksStream(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+
+        final trucks = snapshot.data ?? [];
+        if (trucks.isEmpty) {
+          return const Center(
+            child: Text('No trucks registered.', style: TextStyle(color: AppTheme.textLight)),
+          );
+        }
+
+        return Column(
+          children: trucks.map((truck) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildFleetCard(
+                truck.truckId,
+                truck.currentLocation,
+                truck.displayStatus,
+                truck.prediction,
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 
@@ -407,6 +502,13 @@ class HomeDashboard extends StatelessWidget {
   }
 
   Widget _buildServicePerformance() {
+    final punctuality = (_performance['driverPunctuality'] ?? 0.92) as double;
+    final politeness = (_performance['collectorPoliteness'] ?? 0.88) as double;
+    final efficiency = (_performance['routeEfficiency'] ?? 0.74) as double;
+    final resolution = (_performance['problemResolution'] ?? 0.96) as double;
+    final aiInsight = _performance['aiInsight'] as String? ??
+        'Morning congestion in District 03 is impacting punctuality by 14%. Recommend shifting start times to 05:30 AM.';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -428,13 +530,13 @@ class HomeDashboard extends StatelessWidget {
             style: TextStyle(color: AppTheme.textLight, fontSize: 12),
           ),
           const SizedBox(height: 20),
-          _buildPerformanceBar('Driver Punctuality', 0.92, '92%', AppTheme.primaryGreen),
+          _buildPerformanceBar('Driver Punctuality', punctuality, '${(punctuality * 100).round()}%', AppTheme.primaryGreen),
           const SizedBox(height: 16),
-          _buildPerformanceBar('Collector Politeness', 0.88, '88%', AppTheme.primaryGreen),
+          _buildPerformanceBar('Collector Politeness', politeness, '${(politeness * 100).round()}%', AppTheme.primaryGreen),
           const SizedBox(height: 16),
-          _buildPerformanceBar('Route Efficiency', 0.74, '74%', Colors.blue),
+          _buildPerformanceBar('Route Efficiency', efficiency, '${(efficiency * 100).round()}%', Colors.blue),
           const SizedBox(height: 16),
-          _buildPerformanceBar('Problem Resolution', 0.96, '96%', AppTheme.textDark),
+          _buildPerformanceBar('Problem Resolution', resolution, '${(resolution * 100).round()}%', AppTheme.textDark),
           const SizedBox(height: 24),
           Container(
             padding: const EdgeInsets.all(16),
@@ -460,9 +562,9 @@ class HomeDashboard extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Morning congestion in District 03 is impacting punctuality by 14%. Recommend shifting start times to 05:30 AM.',
-                  style: TextStyle(
+                Text(
+                  aiInsight,
+                  style: const TextStyle(
                     fontSize: 12,
                     color: AppTheme.textDark,
                   ),
@@ -498,17 +600,18 @@ class HomeDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildResidentManagement(BuildContext context) {
+  /// Real-time resident list from Firestore
+  Widget _buildResidentManagementStream(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
+            const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Resident Management',
                   style: TextStyle(
                     fontSize: 18,
@@ -516,8 +619,8 @@ class HomeDashboard extends StatelessWidget {
                     color: AppTheme.textDark,
                   ),
                 ),
-                const SizedBox(height: 4),
-                const Text(
+                SizedBox(height: 4),
+                Text(
                   'Manage household registration',
                   style: TextStyle(color: AppTheme.textLight, fontSize: 14),
                 ),
@@ -546,11 +649,48 @@ class HomeDashboard extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 16),
-        _buildResidentCard('Nihal Perera', 'Bambalapitiya Flats, D-14', 'ACTIVE', 'Registered Today', Icons.home),
-        const SizedBox(height: 12),
-        _buildResidentCard('SkyGarden Condos', 'Ward Place, Colombo 07', 'ACTIVE', '2 hrs ago', Icons.apartment),
-        const SizedBox(height: 12),
-        _buildResidentCard('Cargills FoodCity', 'Dickman\'s Road Outlet', 'PENDING', '4 hrs ago', Icons.store),
+        StreamBuilder<List<UserModel>>(
+          stream: _adminService.getResidentsStream(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final residents = snapshot.data ?? [];
+            if (residents.isEmpty) {
+              return const Center(
+                child: Text('No residents registered yet.', style: TextStyle(color: AppTheme.textLight)),
+              );
+            }
+
+            // Show up to 5 most recent residents
+            final displayResidents = residents.take(5).toList();
+            return Column(
+              children: displayResidents.map((resident) {
+                final timeDiff = DateTime.now().difference(resident.createdAt);
+                String timeAgo;
+                if (timeDiff.inMinutes < 60) {
+                  timeAgo = '${timeDiff.inMinutes} min ago';
+                } else if (timeDiff.inHours < 24) {
+                  timeAgo = '${timeDiff.inHours} hrs ago';
+                } else {
+                  timeAgo = '${timeDiff.inDays} days ago';
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildResidentCard(
+                    resident.name,
+                    resident.address.isNotEmpty ? resident.address : 'No address provided',
+                    resident.status.toUpperCase(),
+                    timeAgo,
+                    Icons.home,
+                  ),
+                );
+              }).toList(),
+            );
+          },
+        ),
       ],
     );
   }

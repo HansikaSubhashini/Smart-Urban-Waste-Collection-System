@@ -1,11 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
+import '../services/auth_service.dart';
+import '../services/collection_service.dart';
+import '../models/collection_model.dart';
 
-class ResidentDashboard extends StatelessWidget {
+class ResidentDashboard extends StatefulWidget {
   const ResidentDashboard({super.key});
 
   @override
+  State<ResidentDashboard> createState() => _ResidentDashboardState();
+}
+
+class _ResidentDashboardState extends State<ResidentDashboard> {
+  final CollectionService _collectionService = CollectionService();
+  final AuthService _auth = AuthService();
+
+  CollectionSchedule? _nextCollection;
+  CollectionSchedule? _lastCollection;
+  bool _geoFenceEnabled = true;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      // Try to find next collection for any area (demo uses Bambalapitiya)
+      final next = await _collectionService.getNextCollection('Bambalapitiya');
+      if (mounted) {
+        setState(() {
+          _nextCollection = next;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading resident data: $e');
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final user = _auth.currentUser;
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -28,46 +69,73 @@ class ResidentDashboard extends StatelessWidget {
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16.0),
-        children: [
-          _buildNextCollectionCard(),
-          const SizedBox(height: 16),
-          _buildSmartETACard(),
-          const SizedBox(height: 16),
-          _buildGeoFenceCard(),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Recent Activity',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-              ),
-              TextButton(
-                onPressed: () {},
-                child: const Text(
-                  'View History',
-                  style: TextStyle(color: AppTheme.primaryGreen, fontWeight: FontWeight.bold),
+      body: RefreshIndicator(
+        onRefresh: _loadData,
+        child: ListView(
+          padding: const EdgeInsets.all(16.0),
+          children: [
+            if (user != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Text(
+                  'Welcome, ${user.name}!',
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textDark,
+                  ),
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          _buildRecentActivityItem(),
-          const SizedBox(height: 16),
-          _buildMapPlaceholder(),
-          const SizedBox(height: 16),
-          _buildMissedCollectionCard(),
-          const SizedBox(height: 24), // Bottom padding
-        ],
+            _buildNextCollectionCard(),
+            const SizedBox(height: 16),
+            _buildSmartETACard(),
+            const SizedBox(height: 16),
+            _buildGeoFenceCard(),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Recent Activity',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                TextButton(
+                  onPressed: () {},
+                  child: const Text(
+                    'View History',
+                    style: TextStyle(color: AppTheme.primaryGreen, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            _buildRecentActivityStream(),
+            const SizedBox(height: 16),
+            _buildMapPlaceholder(),
+            const SizedBox(height: 16),
+            _buildMissedCollectionCard(),
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildNextCollectionCard() {
+    String dateStr = 'Loading...';
+    String typeStr = 'General Waste';
+    String locationStr = 'Your Area';
+
+    if (!_isLoading && _nextCollection != null) {
+      dateStr = DateFormat('EEEE, MMM d').format(_nextCollection!.scheduledDate);
+      typeStr = _nextCollection!.displayType;
+      locationStr = _nextCollection!.area;
+    } else if (!_isLoading) {
+      dateStr = 'No upcoming collection';
+    }
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -82,9 +150,9 @@ class ResidentDashboard extends StatelessWidget {
             style: TextStyle(color: Colors.white70, fontSize: 12, letterSpacing: 1.2),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Monday, May 22',
-            style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
+          Text(
+            dateStr,
+            style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           Row(
@@ -97,9 +165,9 @@ class ResidentDashboard extends StatelessWidget {
                   color: Colors.white.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Text(
-                  'Hathbodhiya Road',
-                  style: TextStyle(color: Colors.white, fontSize: 12),
+                child: Text(
+                  locationStr,
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
                 ),
               ),
             ],
@@ -108,21 +176,28 @@ class ResidentDashboard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'Collection Type',
                     style: TextStyle(color: Colors.white70, fontSize: 12),
                   ),
                   Text(
-                    'General Waste',
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    typeStr,
+                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
               ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('You\'re ready for collection!'),
+                      backgroundColor: AppTheme.primaryGreen,
+                    ),
+                  );
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
                   foregroundColor: AppTheme.darkGreen,
@@ -141,6 +216,14 @@ class ResidentDashboard extends StatelessWidget {
   }
 
   Widget _buildSmartETACard() {
+    String etaWindow = '7:45 AM - 8:05 AM';
+    if (_nextCollection != null) {
+      final time = _nextCollection!.scheduledDate;
+      final start = DateFormat('h:mm a').format(time);
+      final end = DateFormat('h:mm a').format(time.add(const Duration(minutes: 20)));
+      etaWindow = '$start - $end';
+    }
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -164,7 +247,7 @@ class ResidentDashboard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1976D2), // A blue color
+                  color: const Color(0xFF1976D2),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: const Text(
@@ -180,9 +263,9 @@ class ResidentDashboard extends StatelessWidget {
             style: TextStyle(color: AppTheme.textDark, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
-          const Text(
-            '7:45 AM - 8:05 AM',
-            style: TextStyle(color: Color(0xFF1976D2), fontSize: 24, fontWeight: FontWeight.bold),
+          Text(
+            etaWindow,
+            style: const TextStyle(color: Color(0xFF1976D2), fontSize: 24, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -198,7 +281,7 @@ class ResidentDashboard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFE8F5E9), // Light green tint
+        color: const Color(0xFFE8F5E9),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -222,16 +305,18 @@ class ResidentDashboard extends StatelessWidget {
                   style: TextStyle(color: AppTheme.textDark, fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Notify me when the truck is within 500m of my home.',
-                  style: TextStyle(color: AppTheme.textLight, fontSize: 14),
+                Text(
+                  'Notify me when the truck is within ${_auth.currentUser?.alertProximity ?? "500m"} of my home.',
+                  style: const TextStyle(color: AppTheme.textLight, fontSize: 14),
                 ),
               ],
             ),
           ),
           Switch(
-            value: true,
-            onChanged: (val) {},
+            value: _geoFenceEnabled,
+            onChanged: (val) {
+              setState(() => _geoFenceEnabled = val);
+            },
             activeColor: AppTheme.darkGreen,
           ),
         ],
@@ -239,7 +324,33 @@ class ResidentDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildRecentActivityItem() {
+  Widget _buildRecentActivityStream() {
+    return StreamBuilder<List<CollectionSchedule>>(
+      stream: _collectionService.getResidentHistory('Bambalapitiya'),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: Padding(
+            padding: EdgeInsets.all(16),
+            child: CircularProgressIndicator(),
+          ));
+        }
+
+        final collections = snapshot.data ?? [];
+        final completed = collections.where((c) => c.status == 'completed').toList();
+
+        if (completed.isEmpty) {
+          return _buildRecentActivityItem('No recent collections', '');
+        }
+
+        final last = completed.first;
+        final timeStr = DateFormat('h:mm a EEEE').format(last.scheduledDate);
+
+        return _buildRecentActivityItem('Last collection successful', timeStr);
+      },
+    );
+  }
+
+  Widget _buildRecentActivityItem(String title, String subtitle) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -262,15 +373,17 @@ class ResidentDashboard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Last collection successful',
-                  style: TextStyle(color: AppTheme.textDark, fontWeight: FontWeight.bold, fontSize: 16),
+                Text(
+                  title,
+                  style: const TextStyle(color: AppTheme.textDark, fontWeight: FontWeight.bold, fontSize: 16),
                 ),
-                const SizedBox(height: 4),
-                const Text(
-                  '7:58 AM last Thursday',
-                  style: TextStyle(color: AppTheme.textLight, fontSize: 14),
-                ),
+                if (subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(color: AppTheme.textLight, fontSize: 14),
+                  ),
+                ],
               ],
             ),
           ),
@@ -287,7 +400,7 @@ class ResidentDashboard extends StatelessWidget {
         color: Colors.grey[300],
         borderRadius: BorderRadius.circular(16),
         image: const DecorationImage(
-          image: NetworkImage('https://maps.googleapis.com/maps/api/staticmap?center=Colombo&zoom=13&size=600x300&maptype=roadmap&key=PLACEHOLDER'), // Placeholder
+          image: NetworkImage('https://maps.googleapis.com/maps/api/staticmap?center=Colombo&zoom=13&size=600x300&maptype=roadmap&key=PLACEHOLDER'),
           fit: BoxFit.cover,
         ),
       ),
@@ -302,7 +415,7 @@ class ResidentDashboard extends StatelessWidget {
           ),
           const SizedBox(width: 8),
           const Text(
-            'Truck #402 is en route',
+            'Truck is en route',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, shadows: [Shadow(color: Colors.black45, blurRadius: 4)]),
           ),
         ],
@@ -314,7 +427,7 @@ class ResidentDashboard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFE0F7FA), // Light cyan
+        color: const Color(0xFFE0F7FA),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -328,16 +441,16 @@ class ResidentDashboard extends StatelessWidget {
             child: const Icon(Icons.warning_amber_rounded, color: Colors.white),
           ),
           const SizedBox(width: 16),
-          Expanded(
+          const Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Missed a collection?',
                   style: TextStyle(color: AppTheme.textDark, fontWeight: FontWeight.bold, fontSize: 16),
                 ),
-                const SizedBox(height: 4),
-                const Text(
+                SizedBox(height: 4),
+                Text(
                   'Report issues directly to CMC',
                   style: TextStyle(color: AppTheme.textLight, fontSize: 14),
                 ),

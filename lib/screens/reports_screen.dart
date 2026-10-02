@@ -1,8 +1,78 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
+import '../services/auth_service.dart';
+import '../services/report_service.dart';
+import '../models/report_model.dart';
 
-class ReportsScreen extends StatelessWidget {
+class ReportsScreen extends StatefulWidget {
   const ReportsScreen({super.key});
+
+  @override
+  State<ReportsScreen> createState() => _ReportsScreenState();
+}
+
+class _ReportsScreenState extends State<ReportsScreen> {
+  final ReportService _reportService = ReportService();
+  final AuthService _auth = AuthService();
+  final _addressController = TextEditingController();
+  String _selectedReportType = 'missed_collection';
+  bool _isSubmitting = false;
+
+  Future<void> _submitReport() async {
+    final address = _addressController.text.trim();
+    if (address.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Please enter an address.'),
+          backgroundColor: Colors.red.shade700,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final user = _auth.currentUser;
+      final report = ReportModel(
+        id: '',
+        reporterId: user?.uid ?? '',
+        reporterName: user?.name ?? 'Anonymous',
+        type: _selectedReportType,
+        title: _selectedReportType == 'missed_collection'
+            ? 'Missed Collection: $address'
+            : 'Canal Pollution: $address',
+        description: 'Report submitted via EcoTrack app.',
+        address: address,
+        status: 'submitted',
+        progressStep: 1,
+      );
+
+      await _reportService.submitReport(report);
+
+      if (!mounted) return;
+
+      _addressController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Report submitted successfully!'),
+          backgroundColor: AppTheme.primaryGreen,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString().replaceFirst("Exception: ", "")}'),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,38 +106,26 @@ class ReportsScreen extends StatelessWidget {
             subtitle: 'Flag a skipped pickup on your route',
             icon: Icons.delete_outline,
             backgroundColor: AppTheme.darkGreen,
+            onTap: () => setState(() => _selectedReportType = 'missed_collection'),
           ),
           const SizedBox(height: 12),
           _buildActionCard(
             title: 'Report Canal Pollution',
             subtitle: 'Help keep Colombo\'s waterways clean',
             icon: Icons.water_drop_outlined,
-            backgroundColor: const Color(0xFF1565C0), // Blue color from design
+            backgroundColor: const Color(0xFF1565C0),
+            onTap: () => setState(() => _selectedReportType = 'canal_pollution'),
           ),
           const SizedBox(height: 24),
           _buildSectionHeader('Your Active Reports', Icons.radar),
           const SizedBox(height: 12),
-          _buildActiveReportCard(),
+          _buildActiveReportsStream(),
           const SizedBox(height: 24),
           _buildNewReportDetails(context),
           const SizedBox(height: 24),
           _buildSectionHeader('Nearby Reports', Icons.people_alt_outlined),
           const SizedBox(height: 12),
-          _buildNearbyReport(
-            title: 'MISSED COLLECTION',
-            distance: '200m away • Flower Road',
-            time: '2 hours ago',
-            isResolved: false,
-            imageUrl: 'https://images.unsplash.com/photo-1595278069441-2cf29f8005a4?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80',
-          ),
-          const SizedBox(height: 12),
-          _buildNearbyReport(
-            title: 'CANAL POLLUTION',
-            distance: '1.2km away • Beira Lake',
-            time: 'Resolved',
-            isResolved: true,
-            imageUrl: 'https://images.unsplash.com/photo-1594705374479-7d0bc1c78e38?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&q=80',
-          ),
+          _buildNearbyReportsStream(),
           const SizedBox(height: 24),
         ],
       ),
@@ -96,40 +154,90 @@ class ReportsScreen extends StatelessWidget {
     required String subtitle,
     required IconData icon,
     required Color backgroundColor,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: Colors.white, size: 32),
-          const SizedBox(height: 12),
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, color: Colors.white, size: 32),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
-              fontSize: 14,
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.8),
+                fontSize: 14,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildActiveReportCard() {
+  /// Stream active reports for the current user
+  Widget _buildActiveReportsStream() {
+    final userId = _auth.currentUser?.uid ?? '';
+
+    return StreamBuilder<List<ReportModel>>(
+      stream: _reportService.getReportsByResident(userId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: Padding(
+            padding: EdgeInsets.all(16),
+            child: CircularProgressIndicator(),
+          ));
+        }
+
+        final reports = (snapshot.data ?? [])
+            .where((r) => r.status != 'resolved')
+            .toList();
+
+        if (reports.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppTheme.lightBlueBackground,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Center(
+              child: Text(
+                'No active reports.',
+                style: TextStyle(color: AppTheme.textLight),
+              ),
+            ),
+          );
+        }
+
+        return Column(
+          children: reports.map((report) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _buildActiveReportCard(report),
+          )).toList(),
+        );
+      },
+    );
+  }
+
+  Widget _buildActiveReportCard(ReportModel report) {
+    final dateStr = DateFormat('MMM d, h:mm a').format(report.createdAt);
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -143,12 +251,14 @@ class ReportsScreen extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Missed Pickup: 42nd Lane',
-                style: TextStyle(
-                  color: AppTheme.textDark,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+              Expanded(
+                child: Text(
+                  report.title,
+                  style: const TextStyle(
+                    color: AppTheme.textDark,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
               ),
               Container(
@@ -157,9 +267,9 @@ class ReportsScreen extends StatelessWidget {
                   color: const Color(0xFF90CAF9),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Text(
-                  'In Transit',
-                  style: TextStyle(
+                child: Text(
+                  report.displayStatus,
+                  style: const TextStyle(
                     color: Color(0xFF0D47A1),
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -169,27 +279,27 @@ class ReportsScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          const Text(
-            'Submitted Dec 18, 10:24 AM',
-            style: TextStyle(color: AppTheme.textLight, fontSize: 14),
+          Text(
+            'Submitted $dateStr',
+            style: const TextStyle(color: AppTheme.textLight, fontSize: 14),
           ),
           const SizedBox(height: 24),
-          _buildProgressTracker(),
+          _buildProgressTracker(report.progressStep),
         ],
       ),
     );
   }
 
-  Widget _buildProgressTracker() {
+  Widget _buildProgressTracker(int currentStep) {
     return Column(
       children: [
         Row(
           children: [
-            _buildProgressNode(true, '1'),
-            Expanded(child: _buildProgressLine(true)),
-            _buildProgressNode(true, '2'),
-            Expanded(child: _buildProgressLine(false)),
-            _buildProgressNode(false, '3'),
+            _buildProgressNode(currentStep >= 1, '1'),
+            Expanded(child: _buildProgressLine(currentStep >= 2)),
+            _buildProgressNode(currentStep >= 2, '2'),
+            Expanded(child: _buildProgressLine(currentStep >= 3)),
+            _buildProgressNode(currentStep >= 3, '3'),
           ],
         ),
         const SizedBox(height: 8),
@@ -251,6 +361,22 @@ class ReportsScreen extends StatelessWidget {
               color: AppTheme.textDark,
             ),
           ),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: _selectedReportType == 'missed_collection'
+                  ? AppTheme.darkGreen
+                  : const Color(0xFF1565C0),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              _selectedReportType == 'missed_collection'
+                  ? 'Missed Collection'
+                  : 'Canal Pollution',
+              style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+          ),
           const SizedBox(height: 16),
           const Text('Location of Incident', style: TextStyle(color: AppTheme.textDark)),
           const SizedBox(height: 8),
@@ -279,6 +405,7 @@ class ReportsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           TextField(
+            controller: _addressController,
             decoration: InputDecoration(
               hintText: 'Confirm Address (e.g., Ward Place, Colombo 07)',
               hintStyle: const TextStyle(color: AppTheme.textLight),
@@ -323,9 +450,18 @@ class ReportsScreen extends StatelessWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () {},
-              icon: const Icon(Icons.send),
-              label: const Text('Submit Community Report', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              onPressed: _isSubmitting ? null : _submitReport,
+              icon: _isSubmitting
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    )
+                  : const Icon(Icons.send),
+              label: Text(
+                _isSubmitting ? 'Submitting...' : 'Submit Community Report',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: AppTheme.darkGreen,
@@ -337,12 +473,58 @@ class ReportsScreen extends StatelessWidget {
     );
   }
 
+  /// Stream nearby (all) reports
+  Widget _buildNearbyReportsStream() {
+    return StreamBuilder<List<ReportModel>>(
+      stream: _reportService.getNearbyReports(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: Padding(
+            padding: EdgeInsets.all(16),
+            child: CircularProgressIndicator(),
+          ));
+        }
+
+        final reports = snapshot.data ?? [];
+        if (reports.isEmpty) {
+          return const Center(
+            child: Text('No nearby reports.', style: TextStyle(color: AppTheme.textLight)),
+          );
+        }
+
+        return Column(
+          children: reports.take(5).map((report) {
+            final timeStr = report.status == 'resolved'
+                ? 'Resolved'
+                : _formatTimeAgo(report.createdAt);
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildNearbyReport(
+                title: report.displayType,
+                distance: report.address,
+                time: timeStr,
+                isResolved: report.status == 'resolved',
+              ),
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  String _formatTimeAgo(DateTime date) {
+    final diff = DateTime.now().difference(date);
+    if (diff.inMinutes < 60) return '${diff.inMinutes} min ago';
+    if (diff.inHours < 24) return '${diff.inHours} hours ago';
+    return '${diff.inDays} days ago';
+  }
+
   Widget _buildNearbyReport({
     required String title,
     required String distance,
     required String time,
     required bool isResolved,
-    required String imageUrl,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -353,19 +535,19 @@ class ReportsScreen extends StatelessWidget {
       ),
       child: Row(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              imageUrl,
-              width: 70,
-              height: 70,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) => Container(
-                width: 70,
-                height: 70,
-                color: Colors.grey[200],
-                child: const Icon(Icons.image, color: Colors.grey),
-              ),
+          Container(
+            width: 70,
+            height: 70,
+            decoration: BoxDecoration(
+              color: isResolved
+                  ? const Color(0xFFE8F5E9)
+                  : const Color(0xFFFCE4EC),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              isResolved ? Icons.check_circle : Icons.warning_amber,
+              color: isResolved ? AppTheme.primaryGreen : Colors.red,
+              size: 32,
             ),
           ),
           const SizedBox(width: 16),
@@ -413,18 +595,15 @@ class ReportsScreen extends StatelessWidget {
               ],
             ),
           ),
-          if (isResolved)
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: const BoxDecoration(
-                color: AppTheme.darkGreen,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.add, color: Colors.white),
-            ),
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _addressController.dispose();
+    super.dispose();
   }
 }
 

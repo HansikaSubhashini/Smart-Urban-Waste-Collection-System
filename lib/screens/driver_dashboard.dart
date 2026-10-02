@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../services/auth_service.dart';
+import '../services/collection_service.dart';
+import '../models/collection_model.dart';
+import 'login_screen.dart';
 
 class DriverDashboard extends StatelessWidget {
   const DriverDashboard({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final user = AuthService().currentUser;
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
@@ -32,17 +38,21 @@ class DriverDashboard extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          _buildProfileCard(),
+          _buildProfileCard(user),
           const SizedBox(height: 24),
-          _buildRouteDetailsSection(),
+          _buildRouteDetailsSection(user),
           const SizedBox(height: 24),
           _buildAppPreferences(context),
           const SizedBox(height: 32),
           Center(
             child: TextButton.icon(
               onPressed: () {
-                // Handle Sign Out
-                Navigator.pushReplacementNamed(context, '/login');
+                AuthService().logout();
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
               },
               icon: const Icon(Icons.logout, color: Colors.red),
               label: const Text(
@@ -57,7 +67,11 @@ class DriverDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileCard() {
+  Widget _buildProfileCard(user) {
+    final name = user?.name ?? 'Driver';
+    final truckId = user?.truckId ?? 'Not assigned';
+    final zone = user?.zone ?? 'Not assigned';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -81,9 +95,9 @@ class DriverDashboard extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Driver John Doe',
-                      style: TextStyle(color: AppTheme.textDark, fontSize: 20, fontWeight: FontWeight.bold),
+                    Text(
+                      'Driver $name',
+                      style: const TextStyle(color: AppTheme.textDark, fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     const Icon(Icons.edit, color: AppTheme.darkGreen, size: 20),
                   ],
@@ -98,14 +112,14 @@ class DriverDashboard extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Truck: WP-4532',
-                            style: TextStyle(color: AppTheme.textDark, fontSize: 14),
+                          Text(
+                            'Truck: $truckId',
+                            style: const TextStyle(color: AppTheme.textDark, fontSize: 14),
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            'Zone: Colombo South',
-                            style: TextStyle(color: AppTheme.textLight, fontSize: 14),
+                          Text(
+                            'Zone: $zone',
+                            style: const TextStyle(color: AppTheme.textLight, fontSize: 14),
                           ),
                         ],
                       ),
@@ -120,7 +134,9 @@ class DriverDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildRouteDetailsSection() {
+  Widget _buildRouteDetailsSection(user) {
+    final driverId = user?.uid ?? '';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -145,30 +161,63 @@ class DriverDashboard extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 12),
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE8F5E9),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppTheme.primaryGreen, width: 2),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        StreamBuilder<List<CollectionSchedule>>(
+          stream: CollectionService().getDriverCollections(driverId),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final collections = snapshot.data ?? [];
+            if (collections.isEmpty) {
+              return Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5E9),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppTheme.primaryGreen, width: 2),
+                ),
+                child: const Center(
+                  child: Text(
+                    'No routes assigned for today.',
+                    style: TextStyle(color: AppTheme.textLight),
+                  ),
+                ),
+              );
+            }
+
+            final route = collections.first;
+            return Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFE8F5E9),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppTheme.primaryGreen, width: 2),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(Icons.route, color: AppTheme.primaryGreen),
-                  const SizedBox(width: 8),
-                  const Text('Route 4: Kalubowila Area', style: TextStyle(color: AppTheme.textDark, fontWeight: FontWeight.bold, fontSize: 16)),
+                  Row(
+                    children: [
+                      const Icon(Icons.route, color: AppTheme.primaryGreen),
+                      const SizedBox(width: 8),
+                      Text(
+                        route.routeName,
+                        style: const TextStyle(color: AppTheme.textDark, fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  ...route.stops.map((stop) => _buildRouteStop(
+                    stop.time,
+                    stop.title,
+                    stop.location,
+                    stop.isCompleted,
+                  )),
                 ],
               ),
-              const SizedBox(height: 16),
-              _buildRouteStop('08:00 AM', 'Start Point', 'Municipal Depot', true),
-              _buildRouteStop('08:30 AM', 'Collection 1', 'Hospital Road', false),
-              _buildRouteStop('10:00 AM', 'Collection 2', 'Anderson Road', false),
-              _buildRouteStop('12:00 PM', 'End Point', 'Waste Management Center', false),
-            ],
-          ),
+            );
+          },
         ),
       ],
     );

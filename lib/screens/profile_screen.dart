@@ -1,12 +1,53 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../services/auth_service.dart';
 import 'municipal_dashboard.dart';
+import 'login_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final AuthService _auth = AuthService();
+  bool _quietHoursEnabled = false;
+  String _alertProximity = '500m';
+
+  @override
+  void initState() {
+    super.initState();
+    final user = _auth.currentUser;
+    if (user != null) {
+      _quietHoursEnabled = user.quietHoursEnabled;
+      _alertProximity = user.alertProximity ?? '500m';
+    }
+  }
+
+  Future<void> _updateAlertProximity(String proximity) async {
+    setState(() => _alertProximity = proximity);
+    try {
+      await _auth.updateProfile(alertProximity: proximity);
+    } catch (e) {
+      debugPrint('Error updating proximity: $e');
+    }
+  }
+
+  Future<void> _toggleQuietHours(bool val) async {
+    setState(() => _quietHoursEnabled = val);
+    try {
+      await _auth.updateProfile(quietHoursEnabled: val);
+    } catch (e) {
+      debugPrint('Error updating quiet hours: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final user = _auth.currentUser;
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
@@ -33,7 +74,7 @@ class ProfileScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16.0),
         children: [
-          _buildProfileCard(),
+          _buildProfileCard(user),
           const SizedBox(height: 24),
           _buildAlertProximitySection(),
           const SizedBox(height: 24),
@@ -43,7 +84,14 @@ class ProfileScreen extends StatelessWidget {
           const SizedBox(height: 32),
           Center(
             child: TextButton.icon(
-              onPressed: () {},
+              onPressed: () {
+                _auth.logout();
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  (route) => false,
+                );
+              },
               icon: const Icon(Icons.logout, color: Colors.red),
               label: const Text(
                 'Sign Out from EcoTrack',
@@ -60,7 +108,15 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProfileCard() {
+  Widget _buildProfileCard(user) {
+    final name = user?.name ?? 'User';
+    final address = user?.address ?? 'No address set';
+
+    // Split address for display
+    final addressParts = address.split(',');
+    final mainAddress = addressParts.isNotEmpty ? addressParts.first.trim() : address;
+    final subAddress = addressParts.length > 1 ? addressParts.sublist(1).join(',').trim() : '';
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -75,7 +131,6 @@ class ProfileScreen extends StatelessWidget {
             radius: 36,
             backgroundColor: AppTheme.lightBlueBackground,
             child: Icon(Icons.person, size: 40, color: AppTheme.primaryGreen),
-            // backgroundImage: NetworkImage('...'), // Placeholder
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -85,9 +140,9 @@ class ProfileScreen extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Arjuna Perera',
-                      style: TextStyle(
+                    Text(
+                      name,
+                      style: const TextStyle(
                           color: AppTheme.textDark,
                           fontSize: 20,
                           fontWeight: FontWeight.bold),
@@ -106,17 +161,19 @@ class ProfileScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Kalubowila,\nColombo 07',
-                            style: TextStyle(
+                          Text(
+                            mainAddress,
+                            style: const TextStyle(
                                 color: AppTheme.textDark, fontSize: 14),
                           ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            '42/1 Hospital Road',
-                            style: TextStyle(
-                                color: AppTheme.textLight, fontSize: 14),
-                          ),
+                          if (subAddress.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Text(
+                              subAddress,
+                              style: const TextStyle(
+                                  color: AppTheme.textLight, fontSize: 14),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -165,41 +222,85 @@ class ProfileScreen extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.primaryGreen, width: 2),
-                ),
-                child: const Column(
-                  children: [
-                    Icon(Icons.notifications_active,
-                        color: AppTheme.primaryGreen),
-                    SizedBox(height: 8),
-                    Text('500m Away',
+              child: GestureDetector(
+                onTap: () => _updateAlertProximity('500m'),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    color: _alertProximity == '500m'
+                        ? const Color(0xFFE8F5E9)
+                        : AppTheme.lightBlueBackground,
+                    borderRadius: BorderRadius.circular(12),
+                    border: _alertProximity == '500m'
+                        ? Border.all(color: AppTheme.primaryGreen, width: 2)
+                        : null,
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        _alertProximity == '500m'
+                            ? Icons.notifications_active
+                            : Icons.notifications_none,
+                        color: _alertProximity == '500m'
+                            ? AppTheme.primaryGreen
+                            : AppTheme.textLight,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '500m Away',
                         style: TextStyle(
-                            color: AppTheme.textDark,
-                            fontWeight: FontWeight.bold)),
-                  ],
+                          color: _alertProximity == '500m'
+                              ? AppTheme.textDark
+                              : AppTheme.textLight,
+                          fontWeight: _alertProximity == '500m'
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
             const SizedBox(width: 16),
             Expanded(
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                decoration: BoxDecoration(
-                  color: AppTheme.lightBlueBackground,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Column(
-                  children: [
-                    Icon(Icons.notifications_none, color: AppTheme.textLight),
-                    SizedBox(height: 8),
-                    Text('1km Away',
-                        style: TextStyle(color: AppTheme.textLight)),
-                  ],
+              child: GestureDetector(
+                onTap: () => _updateAlertProximity('1km'),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    color: _alertProximity == '1km'
+                        ? const Color(0xFFE8F5E9)
+                        : AppTheme.lightBlueBackground,
+                    borderRadius: BorderRadius.circular(12),
+                    border: _alertProximity == '1km'
+                        ? Border.all(color: AppTheme.primaryGreen, width: 2)
+                        : null,
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        _alertProximity == '1km'
+                            ? Icons.notifications_active
+                            : Icons.notifications_none,
+                        color: _alertProximity == '1km'
+                            ? AppTheme.primaryGreen
+                            : AppTheme.textLight,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '1km Away',
+                        style: TextStyle(
+                          color: _alertProximity == '1km'
+                              ? AppTheme.textDark
+                              : AppTheme.textLight,
+                          fontWeight: _alertProximity == '1km'
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -225,11 +326,11 @@ class ProfileScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          const Row(
             children: [
-              const Icon(Icons.eco_outlined, color: Colors.lightGreenAccent),
-              const SizedBox(width: 8),
-              const Text(
+              Icon(Icons.eco_outlined, color: Colors.lightGreenAccent),
+              SizedBox(width: 8),
+              Text(
                 'Why this matters',
                 style: TextStyle(
                     color: Colors.white,
@@ -250,14 +351,14 @@ class ProfileScreen extends StatelessWidget {
               color: AppTheme.primaryGreen,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Row(
+            child: const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('View Impact Statistics',
+                Text('View Impact Statistics',
                     style: TextStyle(
                         color: Colors.white, fontWeight: FontWeight.bold)),
-                const SizedBox(width: 8),
-                const Icon(Icons.show_chart, color: Colors.white, size: 16),
+                SizedBox(width: 8),
+                Icon(Icons.show_chart, color: Colors.white, size: 16),
               ],
             ),
           ),
@@ -328,8 +429,10 @@ class ProfileScreen extends StatelessWidget {
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: const Text('Disable alerts after 10 PM'),
                 trailing: Checkbox(
-                  value: false,
-                  onChanged: (val) {},
+                  value: _quietHoursEnabled,
+                  onChanged: (val) {
+                    if (val != null) _toggleQuietHours(val);
+                  },
                   activeColor: AppTheme.darkGreen,
                 ),
               ),

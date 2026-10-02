@@ -1,171 +1,264 @@
 import 'package:flutter/material.dart';
 import '../models/user_role.dart';
 import '../theme/app_theme.dart';
-import 'main_screen.dart';
 import 'resident_login_screen.dart';
 import 'admin_login_screen.dart';
 import 'driver_login_screen.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
-  void _login(BuildContext context, UserRole role) {
-    if (role == UserRole.resident) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ResidentLoginScreen()),
-      );
-    } else if (role == UserRole.admin) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const AdminLoginScreen()),
-      );
-    } else if (role == UserRole.driver) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const DriverLoginScreen()),
-      );
-    } else {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => MainScreen(userRole: role)),
-      );
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fadeIn;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _fadeIn = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _navigateToLogin(BuildContext context, UserRole role) {
+    Widget destination;
+    switch (role) {
+      case UserRole.resident:
+        destination = const ResidentLoginScreen();
+        break;
+      case UserRole.admin:
+        destination = const AdminLoginScreen();
+        break;
+      case UserRole.driver:
+        destination = const DriverLoginScreen();
+        break;
     }
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => destination),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundColor,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(
-                Icons.local_shipping,
-                size: 80,
-                color: AppTheme.primaryGreen,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'EcoTrack',
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textDark,
+      backgroundColor: Colors.white,
+      body: FadeTransition(
+        opacity: _fadeIn,
+        child: Column(
+          children: [
+            // ── Green Header (separate) ──
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.only(top: 60, bottom: 40),
+              decoration: const BoxDecoration(
+                color: Color.fromRGBO(0, 107, 86, 1),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(32),
+                  bottomRight: Radius.circular(32),
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Smart Urban Waste Management',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppTheme.textLight,
+              child: Column(
+                children: [
+                  Container(
+                    width: 76,
+                    height: 76,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.18),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.local_shipping_rounded,
+                      size: 40,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'EcoTrack',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                 // const SizedBox(height: 6),
+                  //Text(
+                  //  'Smart Urban Waste Management',
+                   // style: TextStyle(
+                    //  fontSize: 14,
+                      //color: Colors.white.withOpacity(0.8),
+                    //),
+                  //),
+                ],
+              ),
+            ),
+
+            // ── Sign In green card ──
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+                decoration: BoxDecoration(
+                  color: const Color.fromRGBO(0, 107, 86, 0.12),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Sign In',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: const Color.fromRGBO(0, 107, 86, 1),
+
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                  Text(
+                    'Select Your Role To Continue',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Color.fromRGBO(0, 107, 86, 1),
+                    ),
+                  ),
+
+                  const SizedBox(height: 50),
+
+                    _AnimatedRoleButton(
+                      icon: Icons.person_rounded,
+                      label: 'Resident',
+                      onTap: () => _navigateToLogin(context, UserRole.resident),
+                    ),
+                    const SizedBox(height: 40),
+
+                    _AnimatedRoleButton(
+                      icon: Icons.admin_panel_settings_rounded,
+                      label: 'Admin',
+                      onTap: () => _navigateToLogin(context, UserRole.admin),
+                    ),
+                    const SizedBox(height: 40),
+
+                    _AnimatedRoleButton(
+                      icon: Icons.local_shipping_rounded,
+                      label: 'Driver',
+                      onTap: () => _navigateToLogin(context, UserRole.driver),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 64),
-              const Text(
-                'Select your role to continue:',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
-                  color: AppTheme.textDark,
-                ),
-              ),
-              const SizedBox(height: 24),
-              _buildLoginButton(
-                context,
-                title: 'Login as Resident',
-                subtitle: 'Track your collection & report issues',
-                icon: Icons.home,
-                role: UserRole.resident,
-              ),
-              const SizedBox(height: 16),
-              _buildLoginButton(
-                context,
-                title: 'Login as Admin',
-                subtitle: 'Manage fleet & view analytics',
-                icon: Icons.admin_panel_settings,
-                role: UserRole.admin,
-              ),
-              const SizedBox(height: 16),
-              _buildLoginButton(
-                context,
-                title: 'Login as Driver',
-                subtitle: 'View routes & update status',
-                icon: Icons.drive_eta,
-                role: UserRole.driver,
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildLoginButton(
-    BuildContext context, {
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required UserRole role,
-  }) {
-    return InkWell(
-      onTap: () => _login(context, role),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppTheme.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.withOpacity(0.2)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppTheme.lightBlueBackground,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: AppTheme.primaryGreen, size: 28),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textDark,
-                    ),
+// ── Animated role button with pop-up effect ──
+class _AnimatedRoleButton extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _AnimatedRoleButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  State<_AnimatedRoleButton> createState() => _AnimatedRoleButtonState();
+}
+
+class _AnimatedRoleButtonState extends State<_AnimatedRoleButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150),
+    );
+    _scale = Tween<double>(begin: 1.0, end: 1.06).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _onTapDown(TapDownDetails _) {
+    _controller.forward();
+  }
+
+  void _onTapUp(TapUpDetails _) {
+    _controller.reverse().then((_) => widget.onTap());
+  }
+
+  void _onTapCancel() {
+    _controller.reverse();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: _onTapDown,
+      onTapUp: _onTapUp,
+      onTapCancel: _onTapCancel,
+      child: ScaleTransition(
+        scale: _scale,
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          decoration: BoxDecoration(
+            color: const Color.fromRGBO(0, 107, 86, 1),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            children: [
+              Icon(widget.icon, color: Colors.white, size: 26),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  widget.label,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppTheme.textLight,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-            const Icon(Icons.arrow_forward_ios, color: AppTheme.textLight, size: 16),
-          ],
+              Icon(
+                Icons.chevron_right_rounded,
+                color: Colors.white.withOpacity(0.6),
+                size: 22,
+              ),
+            ],
+          ),
         ),
       ),
     );

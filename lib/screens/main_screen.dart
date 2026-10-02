@@ -82,7 +82,6 @@ class _MainScreenState extends State<MainScreen> {
         ];
         break;
       case UserRole.resident:
-      default:
         _screens = [
           const ResidentDashboard(),
           const MapScreen(),
