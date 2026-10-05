@@ -3,6 +3,8 @@ import '../models/user_role.dart';
 import 'home_dashboard.dart';
 import 'resident_dashboard.dart';
 import 'driver_dashboard.dart';
+import 'driver_map_screen.dart';
+import 'driver_feedback_screen.dart';
 import 'profile_screen.dart';
 import 'reports_screen.dart';
 import 'map_screen.dart';
@@ -65,7 +67,8 @@ class _MainScreenState extends State<MainScreen> {
         break;
       case UserRole.driver:
         _screens = [
-          const MapScreen(),
+          const DriverMapScreen(),
+          const DriverFeedbackScreen(),
           const DriverDashboard(),
         ];
         _navItems = const [
@@ -73,6 +76,11 @@ class _MainScreenState extends State<MainScreen> {
             icon: Icon(Icons.map_outlined),
             activeIcon: Icon(Icons.map),
             label: 'Map',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.rate_review_outlined),
+            activeIcon: Icon(Icons.rate_review),
+            label: 'Feedback',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),

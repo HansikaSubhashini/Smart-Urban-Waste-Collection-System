@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 import '../services/collection_service.dart';
 import '../models/collection_model.dart';
+import 'resident_feedback_screen.dart';
 
 class ResidentDashboard extends StatefulWidget {
   const ResidentDashboard({super.key});
@@ -114,6 +117,8 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
             _buildRecentActivityStream(),
             const SizedBox(height: 16),
             _buildMapPlaceholder(),
+            const SizedBox(height: 16),
+            _buildFeedbackCard(),
             const SizedBox(height: 16),
             _buildMissedCollectionCard(),
             const SizedBox(height: 24),
@@ -399,24 +404,61 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
       decoration: BoxDecoration(
         color: Colors.grey[300],
         borderRadius: BorderRadius.circular(16),
-        image: const DecorationImage(
-          image: NetworkImage('https://maps.googleapis.com/maps/api/staticmap?center=Colombo&zoom=13&size=600x300&maptype=roadmap&key=PLACEHOLDER'),
-          fit: BoxFit.cover,
-        ),
       ),
-      alignment: Alignment.bottomLeft,
-      padding: const EdgeInsets.all(16),
-      child: Row(
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
         children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle),
+          FlutterMap(
+            options: const MapOptions(
+              initialCenter: LatLng(6.9271, 79.8612), // Colombo
+              initialZoom: 13.0,
+              interactionOptions: InteractionOptions(flags: InteractiveFlag.none), // Disable interaction for dashboard snippet
+            ),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.ecotrack.app',
+              ),
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: const LatLng(6.9290, 79.8630), // Truck Location
+                    width: 30,
+                    height: 30,
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: AppTheme.darkGreen,
+                        shape: BoxShape.circle,
+                        boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                      ),
+                      child: const Icon(Icons.local_shipping, color: Colors.white, size: 16),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          const Text(
-            'Truck is en route',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, shadows: [Shadow(color: Colors.black45, blurRadius: 4)]),
+          Positioned(
+            bottom: 16,
+            left: 16,
+            child: Row(
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(color: Colors.greenAccent, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Truck is en route',
+                  style: TextStyle(
+                    color: Colors.white, 
+                    fontWeight: FontWeight.bold, 
+                    shadows: [Shadow(color: Colors.black, blurRadius: 8, offset: Offset(0, 1))],
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -465,6 +507,91 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             ),
             child: const Text('Report'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeedbackCard() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF006B56), Color(0xFF004D40)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.darkGreen.withOpacity(0.25),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.rate_review, color: Colors.white, size: 28),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Rate Your Driver',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Help us improve with your feedback',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.75),
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const ResidentFeedbackScreen(),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.white,
+              foregroundColor: AppTheme.darkGreen,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              elevation: 0,
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.star, size: 16),
+                SizedBox(width: 4),
+                Text('Rate', style: TextStyle(fontWeight: FontWeight.bold)),
+              ],
+            ),
           ),
         ],
       ),

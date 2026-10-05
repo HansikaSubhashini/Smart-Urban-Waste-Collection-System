@@ -9,6 +9,7 @@ import 'admin_fleet_screen.dart';
 import 'admin_residents_screen.dart';
 import 'admin_reports_screen.dart';
 import 'admin_settings_screen.dart';
+import 'map_screen.dart';
 
 class HomeDashboard extends StatefulWidget {
   const HomeDashboard({super.key});
@@ -83,7 +84,9 @@ class _HomeDashboardState extends State<HomeDashboard> {
             const SizedBox(height: 24),
             _buildOverviewMetrics(),
             const SizedBox(height: 32),
-            _buildSectionHeader(Icons.sensors, 'Fleet Real-time Status', 'View Map'),
+            _buildSectionHeader(Icons.sensors, 'Fleet Real-time Status', 'View Map', onActionTap: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const MapScreen()));
+            }),
             const SizedBox(height: 16),
             _buildFleetStatusStream(),
             const SizedBox(height: 32),
@@ -340,7 +343,7 @@ class _HomeDashboardState extends State<HomeDashboard> {
     );
   }
 
-  Widget _buildSectionHeader(IconData icon, String title, String? actionText) {
+  Widget _buildSectionHeader(IconData icon, String title, String? actionText, {VoidCallback? onActionTap}) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -359,12 +362,15 @@ class _HomeDashboardState extends State<HomeDashboard> {
           ],
         ),
         if (actionText != null)
-          Text(
-            actionText,
-            style: const TextStyle(
-              color: AppTheme.primaryGreen,
-              fontWeight: FontWeight.bold,
-              fontSize: 14,
+          GestureDetector(
+            onTap: onActionTap,
+            child: Text(
+              actionText,
+              style: const TextStyle(
+                color: AppTheme.primaryGreen,
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+              ),
             ),
           ),
       ],

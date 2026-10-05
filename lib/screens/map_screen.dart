@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
+import 'package:geolocator/geolocator.dart';
 import '../theme/app_theme.dart';
 
 class MapScreen extends StatefulWidget {
@@ -10,6 +13,43 @@ class MapScreen extends StatefulWidget {
 
 class _MapScreenState extends State<MapScreen> {
   bool _isLiveView = true;
+  LatLng _currentLocation = const LatLng(6.9271, 79.8612); // Default to Colombo
+  final MapController _mapController = MapController();
+
+  @override
+  void initState() {
+    super.initState();
+    _determinePosition();
+  }
+
+  Future<void> _determinePosition() async {
+    bool serviceEnabled;
+    LocationPermission permission;
+
+    // Test if location services are enabled.
+    serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      return Future.error('Location services are disabled.');
+    }
+
+    permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        return Future.error('Location permissions are denied');
+      }
+    }
+    
+    if (permission == LocationPermission.deniedForever) {
+      return Future.error('Location permissions are permanently denied, we cannot request permissions.');
+    } 
+
+    Position position = await Geolocator.getCurrentPosition();
+    setState(() {
+      _currentLocation = LatLng(position.latitude, position.longitude);
+      _mapController.move(_currentLocation, 14.0);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,42 +80,45 @@ class _MapScreenState extends State<MapScreen> {
       extendBodyBehindAppBar: true, // Allow map to go behind app bar
       body: Stack(
         children: [
-          // Background Map Placeholder
+          // Real Interactive Map
           Positioned.fill(
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                image: const DecorationImage(
-                  image: NetworkImage(
-                    'https://maps.googleapis.com/maps/api/staticmap?center=Colombo&zoom=16&size=800x800&maptype=roadmap&key=PLACEHOLDER'
-                  ),
-                  fit: BoxFit.cover,
+            child: FlutterMap(
+              mapController: _mapController,
+              options: MapOptions(
+                initialCenter: _currentLocation, // Dynamic coordinates
+                initialZoom: 14.0,
+              ),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.ecotrack.app',
                 ),
-              ),
-              child: Stack(
-                children: [
-                  // Fake map markers overlay
-                  Positioned(
-                    top: MediaQuery.of(context).size.height * 0.4,
-                    left: MediaQuery.of(context).size.width * 0.3,
-                    child: _buildMapMarker(
-                      icon: Icons.local_shipping,
-                      label: 'TRUCK #402',
-                      color: AppTheme.darkGreen,
+                MarkerLayer(
+                  markers: [
+                    Marker(
+                      point: const LatLng(6.9290, 79.8630), // Simulated Truck Location
+                      width: 100,
+                      height: 100,
+                      child: _buildMapMarker(
+                        icon: Icons.local_shipping,
+                        label: 'TRUCK #402',
+                        color: AppTheme.darkGreen,
+                      ),
                     ),
-                  ),
-                  Positioned(
-                    top: MediaQuery.of(context).size.height * 0.55,
-                    left: MediaQuery.of(context).size.width * 0.45,
-                    child: _buildMapMarker(
-                      icon: Icons.person,
-                      label: 'MY LOCATION',
-                      color: const Color(0xFF1976D2), // Blue dot style
-                      isDot: true,
+                    Marker(
+                      point: _currentLocation, // Real User Location
+                      width: 100,
+                      height: 100,
+                      child: _buildMapMarker(
+                        icon: Icons.person,
+                        label: 'MY LOCATION',
+                        color: const Color(0xFF1976D2), // Blue dot style
+                        isDot: true,
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
             ),
           ),
           
@@ -148,6 +191,8 @@ class _MapScreenState extends State<MapScreen> {
       ),
     );
   }
+
+
 
   Widget _buildMapMarker({
     required IconData icon,

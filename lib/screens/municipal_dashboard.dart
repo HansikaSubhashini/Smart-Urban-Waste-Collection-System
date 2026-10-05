@@ -5,6 +5,7 @@ import '../models/user_model.dart';
 import '../services/truck_service.dart';
 import '../services/admin_service.dart';
 import 'admin_register_resident_screen.dart';
+import 'map_screen.dart';
 
 class MunicipalDashboard extends StatefulWidget {
   const MunicipalDashboard({super.key});
@@ -353,11 +354,19 @@ class _MunicipalDashboardState extends State<MunicipalDashboard> {
                   ),
                 ],
               ),
-              const Text(
-                'View Map',
-                style: TextStyle(
-                  color: AppTheme.primaryGreen,
-                  fontWeight: FontWeight.bold,
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const MapScreen()),
+                  );
+                },
+                child: const Text(
+                  'View Map',
+                  style: TextStyle(
+                    color: AppTheme.primaryGreen,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],

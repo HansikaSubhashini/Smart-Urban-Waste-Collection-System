@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../models/truck_model.dart';
 import '../services/truck_service.dart';
+import 'map_screen.dart';
 
 class AdminFleetScreen extends StatefulWidget {
   const AdminFleetScreen({super.key});
@@ -324,7 +325,12 @@ class _AdminFleetScreenState extends State<AdminFleetScreen> {
               const SizedBox(width: 12),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const MapScreen()),
+                    );
+                  },
                   icon: const Icon(Icons.map_outlined, size: 16),
                   label: const Text('Track'),
                   style: OutlinedButton.styleFrom(
