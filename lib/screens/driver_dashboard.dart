@@ -3,10 +3,19 @@ import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 import '../services/collection_service.dart';
 import '../models/collection_model.dart';
+import '../utils/translations.dart';
 import 'login_screen.dart';
 
-class DriverDashboard extends StatelessWidget {
+class DriverDashboard extends StatefulWidget {
   const DriverDashboard({super.key});
+
+  @override
+  State<DriverDashboard> createState() => _DriverDashboardState();
+}
+
+class _DriverDashboardState extends State<DriverDashboard> {
+  String _selectedLanguage = 'English';
+  final List<String> _languages = ['English', 'Sinhala', 'Tamil'];
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +29,7 @@ class DriverDashboard extends StatelessWidget {
             const Icon(Icons.person, color: AppTheme.darkGreen),
             const SizedBox(width: 8),
             Text(
-              'My Profile',
+              Translations.t('My Profile', _selectedLanguage),
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: AppTheme.darkGreen,
                     fontWeight: FontWeight.bold,
@@ -55,9 +64,9 @@ class DriverDashboard extends StatelessWidget {
                 );
               },
               icon: const Icon(Icons.logout, color: Colors.red),
-              label: const Text(
-                'Sign Out from EcoTrack',
-                style: TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold),
+              label: Text(
+                Translations.t('Sign Out from EcoTrack', _selectedLanguage),
+                style: const TextStyle(color: Colors.red, fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -68,9 +77,9 @@ class DriverDashboard extends StatelessWidget {
   }
 
   Widget _buildProfileCard(user) {
-    final name = user?.name ?? 'Driver';
-    final truckId = user?.truckId ?? 'Not assigned';
-    final zone = user?.zone ?? 'Not assigned';
+    final name = user?.name ?? Translations.t('Driver', _selectedLanguage);
+    final truckId = user?.truckId ?? Translations.t('Not assigned', _selectedLanguage);
+    final zone = user?.zone ?? Translations.t('Not assigned', _selectedLanguage);
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -96,7 +105,7 @@ class DriverDashboard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Driver $name',
+                      '${Translations.t('Driver', _selectedLanguage)} $name',
                       style: const TextStyle(color: AppTheme.textDark, fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     const Icon(Icons.edit, color: AppTheme.darkGreen, size: 20),
@@ -113,12 +122,12 @@ class DriverDashboard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Truck: $truckId',
+                            '${Translations.t('Truck', _selectedLanguage)}: $truckId',
                             style: const TextStyle(color: AppTheme.textDark, fontSize: 14),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Zone: $zone',
+                            '${Translations.t('Zone', _selectedLanguage)}: $zone',
                             style: const TextStyle(color: AppTheme.textLight, fontSize: 14),
                           ),
                         ],
@@ -143,9 +152,9 @@ class DriverDashboard extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'TODAY\'S ROUTE DETAILS',
-              style: TextStyle(color: AppTheme.textLight, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+            Text(
+              Translations.t('TODAY\'S ROUTE DETAILS', _selectedLanguage),
+              style: const TextStyle(color: AppTheme.textLight, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2),
             ),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -153,9 +162,9 @@ class DriverDashboard extends StatelessWidget {
                 color: AppTheme.primaryGreen,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Text(
-                'ACTIVE',
-                style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+              child: Text(
+                Translations.t('ACTIVE', _selectedLanguage),
+                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
               ),
             ),
           ],
@@ -177,10 +186,10 @@ class DriverDashboard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: AppTheme.primaryGreen, width: 2),
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
-                    'No routes assigned for today.',
-                    style: TextStyle(color: AppTheme.textLight),
+                    Translations.t('No routes assigned for today.', _selectedLanguage),
+                    style: const TextStyle(color: AppTheme.textLight),
                   ),
                 ),
               );
@@ -287,9 +296,9 @@ class DriverDashboard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'APP PREFERENCES',
-          style: TextStyle(color: AppTheme.textLight, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2),
+        Text(
+          Translations.t('APP PREFERENCES', _selectedLanguage),
+          style: const TextStyle(color: AppTheme.textLight, fontSize: 12, fontWeight: FontWeight.bold, letterSpacing: 1.2),
         ),
         const SizedBox(height: 12),
         Container(
@@ -301,28 +310,41 @@ class DriverDashboard extends StatelessWidget {
             children: [
               ListTile(
                 leading: const Icon(Icons.language, color: AppTheme.textDark),
-                title: const Text('Language', style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text('Preferred interface language'),
+                title: Text(Translations.t('Language', _selectedLanguage), style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(Translations.t('Preferred interface language', _selectedLanguage)),
                 trailing: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300),
                   ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('English'),
-                      Icon(Icons.arrow_drop_down),
-                    ],
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedLanguage,
+                      icon: const Icon(Icons.arrow_drop_down, color: AppTheme.darkGreen),
+                      items: _languages.map((String lang) {
+                        return DropdownMenuItem<String>(
+                          value: lang,
+                          child: Text(lang, style: const TextStyle(fontSize: 14)),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            _selectedLanguage = newValue;
+                          });
+                        }
+                      },
+                    ),
                   ),
                 ),
               ),
               const Divider(height: 1, indent: 56),
               ListTile(
                 leading: const Icon(Icons.dark_mode_outlined, color: AppTheme.textDark),
-                title: const Text('App Theme', style: TextStyle(fontWeight: FontWeight.bold)),
-                subtitle: const Text('Switch between light and dark'),
+                title: Text(Translations.t('App Theme', _selectedLanguage), style: const TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: Text(Translations.t('Switch between light and dark', _selectedLanguage)),
                 trailing: Switch(
                   value: false,
                   onChanged: (val) {},

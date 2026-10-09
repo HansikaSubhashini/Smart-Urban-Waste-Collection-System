@@ -15,6 +15,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final AuthService _auth = AuthService();
   bool _quietHoursEnabled = false;
   String _alertProximity = '500m';
+  String _selectedLanguage = 'English';
+  final List<String> _languages = ['English', 'Sinhala', 'Tamil'];
 
   @override
   void initState() {
@@ -393,18 +395,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     style: TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: const Text('Preferred interface language'),
                 trailing: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.grey.shade300),
                   ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('English'),
-                      Icon(Icons.arrow_drop_down),
-                    ],
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: _selectedLanguage,
+                      icon: const Icon(Icons.arrow_drop_down, color: AppTheme.darkGreen),
+                      items: _languages.map((String lang) {
+                        return DropdownMenuItem<String>(
+                          value: lang,
+                          child: Text(lang, style: const TextStyle(fontSize: 14)),
+                        );
+                      }).toList(),
+                      onChanged: (String? newValue) {
+                        if (newValue != null) {
+                          setState(() {
+                            _selectedLanguage = newValue;
+                          });
+                        }
+                      },
+                    ),
                   ),
                 ),
               ),

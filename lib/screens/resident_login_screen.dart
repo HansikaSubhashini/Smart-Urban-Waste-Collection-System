@@ -3,6 +3,7 @@ import '../models/user_role.dart';
 import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 import 'main_screen.dart';
+import 'forgot_password_screen.dart';
 
 class ResidentLoginScreen extends StatefulWidget {
   const ResidentLoginScreen({super.key});
@@ -139,7 +140,14 @@ class _ResidentLoginScreenState extends State<ResidentLoginScreen> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ForgotPasswordScreen(),
+                      ),
+                    );
+                  },
                   child: const Text(
                     'Forgot Password?',
                     style: TextStyle(

@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../services/collection_service.dart';
 import '../models/collection_model.dart';
 import 'resident_feedback_screen.dart';
+import '../services/geofence_simulation_service.dart';
 
 class ResidentDashboard extends StatefulWidget {
   const ResidentDashboard({super.key});
@@ -23,11 +24,19 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
   CollectionSchedule? _lastCollection;
   bool _geoFenceEnabled = true;
   bool _isLoading = true;
+  LatLng _truckLocation = const LatLng(6.9290, 79.8630);
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    GeofenceSimulationService().onLocationUpdated = (location, distance) {
+      if (mounted) {
+        setState(() {
+          _truckLocation = location;
+        });
+      }
+    };
   }
 
   Future<void> _loadData() async {
@@ -317,12 +326,29 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
               ],
             ),
           ),
-          Switch(
-            value: _geoFenceEnabled,
-            onChanged: (val) {
-              setState(() => _geoFenceEnabled = val);
-            },
-            activeColor: AppTheme.darkGreen,
+          Column(
+            children: [
+              Switch(
+                value: _geoFenceEnabled,
+                onChanged: (val) {
+                  setState(() => _geoFenceEnabled = val);
+                },
+                activeColor: AppTheme.darkGreen,
+              ),
+              if (_geoFenceEnabled)
+                TextButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Starting Truck Simulation...')),
+                    );
+                    GeofenceSimulationService().startSimulation();
+                  },
+                  child: const Text(
+                    'Simulate Truck',
+                    style: TextStyle(fontSize: 12, color: AppTheme.primaryGreen),
+                  ),
+                ),
+            ],
           ),
         ],
       ),
@@ -422,7 +448,7 @@ class _ResidentDashboardState extends State<ResidentDashboard> {
               MarkerLayer(
                 markers: [
                   Marker(
-                    point: const LatLng(6.9290, 79.8630), // Truck Location
+                    point: _truckLocation, // Truck Location
                     width: 30,
                     height: 30,
                     child: Container(

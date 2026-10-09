@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
+import 'package:mailer/mailer.dart';
+import 'package:mailer/smtp_server.dart';
 import '../models/user_model.dart';
 import '../models/user_role.dart';
 
@@ -159,6 +162,100 @@ class AuthService {
       alertProximity: alertProximity,
       quietHoursEnabled: quietHoursEnabled,
     );
+  }
+
+  /// Generate and send OTP via email
+  Future<void> sendPasswordResetOTP(String email) async {
+    final querySnapshot = await _db
+        .collection('users')
+        .where('email', isEqualTo: email.toLowerCase().trim())
+        .limit(1)
+        .get();
+
+    if (querySnapshot.docs.isEmpty) {
+      throw Exception('No account found with this email.');
+    }
+
+    // Generate 6-digit OTP
+    final random = Random();
+    final otp = (100000 + random.nextInt(900000)).toString();
+
+    // Store OTP in Firestore
+    await _db.collection('password_resets').doc(email.toLowerCase().trim()).set({
+      'otp': otp,
+      'createdAt': FieldValue.serverTimestamp(),
+    });
+
+    // Send email using mailer
+    String username = 'hansikasubhashini50@gmail.com'; // TODO: Replace with your Gmail
+    String password = 'ejmdubbgirohmnig'; // TODO: Replace with your App Password
+
+    final smtpServer = gmail(username, password);
+    final message = Message()
+      ..from = Address(username, 'Smart Waste Management System')
+      ..recipients.add(email)
+      ..subject = 'Password Reset OTP'
+      ..text = 'Your password reset OTP is: $otp\nThis OTP will expire in 10 minutes.'
+      ..html = '<h1>Password Reset</h1><p>Your password reset OTP is: <strong>$otp</strong></p><p>This OTP will expire in 10 minutes.</p>';
+
+    try {
+      await send(message, smtpServer);
+      debugPrint('AuthService: Password reset OTP sent to $email');
+    } catch (e) {
+      debugPrint('Error sending email: $e');
+      throw Exception('Failed to send email. Please check SMTP configuration ($e).');
+    }
+  }
+
+  /// Verify OTP
+  Future<void> verifyOTP(String email, String otp) async {
+    final docRef = _db.collection('password_resets').doc(email.toLowerCase().trim());
+    final docSnapshot = await docRef.get();
+
+    if (!docSnapshot.exists) {
+      throw Exception('No OTP request found for this email.');
+    }
+
+    final data = docSnapshot.data()!;
+    final storedOtp = data['otp'] as String;
+    final createdAt = (data['createdAt'] as Timestamp?)?.toDate();
+
+    if (createdAt != null) {
+      final now = DateTime.now();
+      final difference = now.difference(createdAt);
+      if (difference.inMinutes > 10) {
+        throw Exception('OTP has expired. Please request a new one.');
+      }
+    }
+
+    if (storedOtp != otp) {
+      throw Exception('Invalid OTP.');
+    }
+  }
+
+  /// Update password by email (without needing to be logged in)
+  Future<void> updatePasswordByEmail(String email, String newPassword) async {
+    final querySnapshot = await _db
+        .collection('users')
+        .where('email', isEqualTo: email.toLowerCase().trim())
+        .limit(1)
+        .get();
+
+    if (querySnapshot.docs.isEmpty) {
+      throw Exception('No account found with this email.');
+    }
+
+    final docId = querySnapshot.docs.first.id;
+
+    await _db.collection('users').doc(docId).update({
+      'passwordHash': _hashPassword(newPassword),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    // Clear the OTP
+    await _db.collection('password_resets').doc(email.toLowerCase().trim()).delete();
+
+    debugPrint('AuthService: Password updated for $email');
   }
 
   /// Logout the current user
